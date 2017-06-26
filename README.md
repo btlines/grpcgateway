@@ -48,7 +48,17 @@ libraryDependencies += "beyondthelines" %% "grpcgatewayruntime" % "0.0.0" % "com
 
 You're now ready to create your GRPC gateway.
 
-You first need to create a GRPC channel pointing to your GRPC server:
+First thing is to annotate the proto files to define the REST endpoints:
+
+```
+rpc GetFeature(Point) returns (Feature) {
+  option (google.api.http) = {
+    get: "/v1/example/feature"
+  };
+}
+```
+
+Then you need to create a GRPC channel pointing to your GRPC server:
 
 ```scala
 val channel = 
@@ -58,7 +68,7 @@ val channel =
     .build()
 ```
 
-and then create the gateway itself:
+and finally create the gateway itself:
 
 ```scala
 val gateway = GrpcGatewayServerBuilder
@@ -70,7 +80,7 @@ val gateway = GrpcGatewayServerBuilder
 
 Here `RouteGuideHandler` is the handler automatically generated from the protobuf files.
 
-Then you can use `start()` and `shutdown()` to start and shutdown the gateway.
+You can use `start()` and `shutdown()` to start and shutdown the gateway.
 
 ```scala
 gateway.start()
