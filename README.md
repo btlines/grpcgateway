@@ -1,7 +1,8 @@
 [![Build status](https://api.travis-ci.org/btlines/grpcgateway.svg?branch=master)](https://travis-ci.org/btlines/grpcgateway)
 [![Dependencies](https://app.updateimpact.com/badge/852442212779298816/grpcgateway.svg?config=compile)](https://app.updateimpact.com/latest/852442212779298816/grpcgateway)
 [![License](https://img.shields.io/:license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Download](https://api.bintray.com/packages/beyondthelines/maven/grpcgateway/images/download.svg) ](https://bintray.com/beyondthelines/maven/grpcgateway/_latestVersion)
+[![GRPCGatewayGenerator](https://api.bintray.com/packages/beyondthelines/maven/grpcgatewaygenerator/images/download.svg) ](https://bintray.com/beyondthelines/maven/grpcgatewaygenerator/_latestVersion)
+[![GRPCGatewayRuntime](https://api.bintray.com/packages/beyondthelines/maven/grpcgatewayruntime/images/download.svg) ](https://bintray.com/beyondthelines/maven/grpcgatewayruntime/_latestVersion)
 
 # GRPC Gateway
 
@@ -47,7 +48,7 @@ libraryDependencies += "beyondthelines" %% "grpcgatewayruntime" % "0.0.0" % "com
 
 You're now ready to create your GRPC gateway.
 
-You first need to create a GRPC channel:
+You first need to create a GRPC channel pointing to your GRPC server:
 
 ```scala
 val channel = 
