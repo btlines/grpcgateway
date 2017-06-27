@@ -21,6 +21,8 @@ You can do it by adding a `protoc.sbt` file into your `project` folder with the 
 ```scala
 addSbtPlugin("com.thesamet" % "sbt-protoc" % "0.99.9")
 
+resolvers += Resolver.bintrayRepo("beyondthelines", "maven")
+
 libraryDependencies ++= Seq(
   "com.trueaccord.scalapb" %% "compilerplugin" % "0.6.0-pre5",
   "beyondthelines"         %% "grpcgatewaygenerator" % "0.0.0"
@@ -41,6 +43,8 @@ PB.targets in Compile := Seq(
   grpcgateway.generators.GatewayGenerator -> (sourceManaged in Compile).value
 )
 
+resolvers += Resolver.bintrayRepo("beyondthelines", "maven")
+
 libraryDependencies += "beyondthelines" %% "grpcgatewayruntime" % "0.0.0" % "compile,protobuf"
 ```
 
@@ -51,6 +55,8 @@ You're now ready to create your GRPC gateway.
 First thing is to annotate the proto files to define the REST endpoints:
 
 ```
+import "google/api/annotations.proto";
+
 rpc GetFeature(Point) returns (Feature) {
   option (google.api.http) = {
     get: "/v1/example/feature"
