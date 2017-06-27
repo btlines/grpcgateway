@@ -52,7 +52,6 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
         "import _root_.com.trueaccord.scalapb.GeneratedMessage",
         "import _root_.com.trueaccord.scalapb.json.JsonFormat",
         "import _root_.grpcgateway.handlers.GrpcGatewayHandler",
-        "import _root_.io.grpc.gateway.ServiceGatewayHandler",
         "import _root_.io.grpc.ManagedChannel",
         "import _root_.io.netty.handler.codec.http.{HttpMethod, QueryStringDecoder}"
       )
