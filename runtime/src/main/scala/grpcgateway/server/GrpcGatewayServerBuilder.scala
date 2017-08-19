@@ -33,7 +33,7 @@ case class GrpcGatewayServerBuilder(
         override def initChannel(ch: SocketChannel): Unit = {
           ch.pipeline().addLast("codec", new HttpServerCodec())
           ch.pipeline().addLast("aggregator", new HttpObjectAggregator(512 * 1024))
-          ch.pipeline().addLast("swagger", new SwaggerHandler)
+          ch.pipeline().addLast("swagger", new SwaggerHandler(services))
           services.foreach { handler =>
             ch.pipeline().addLast(handler.name, handler)
           }

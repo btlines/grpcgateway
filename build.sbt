@@ -1,9 +1,11 @@
 lazy val commonSettings = Seq(
   organization := "beyondthelines",
-  version := "0.0.1",
+  version := "0.0.2",
   licenses := ("MIT", url("http://opensource.org/licenses/MIT")) :: Nil,
   bintrayOrganization := Some("beyondthelines"),
-  bintrayPackageLabels := Seq("scala", "protobuf", "grpc")
+  bintrayPackageLabels := Seq("scala", "protobuf", "grpc"),
+    // set python location (only required for scalapb under windows)
+  PB.pythonExe := "C:\\Python27\\Python.exe"
 )
 
 lazy val runtime = (project in file("runtime"))
@@ -17,7 +19,7 @@ lazy val runtime = (project in file("runtime"))
       "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % "0.6.0-pre5",
       "com.trueaccord.scalapb" %% "scalapb-json4s"          % "0.3.0",
       "io.grpc"                %  "grpc-netty"              % "1.4.0",
-      "org.webjars"            %  "swagger-ui"              % "3.0.10",
+      "org.webjars"            %  "swagger-ui"              % "3.1.5",
       "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf"
     ),
     PB.protoSources in Compile += target.value / "protobuf_external",
