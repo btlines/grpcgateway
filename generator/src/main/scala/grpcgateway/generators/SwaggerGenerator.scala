@@ -32,11 +32,11 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           acc + (fp.getName -> FileDescriptor.buildFrom(fp, deps.toArray))
       }
 
-    request.getFileToGenerateList.asScala.foreach { name =>
-      val fileDesc     = fileDescByName(name)
-      val responseFile = generateFile(fileDesc)
-      b.addFile(responseFile)
-    }
+    request.getFileToGenerateList.asScala
+      .map(fileDescByName)
+      .filter(_.getServices.asScala.nonEmpty)
+      .map(generateFile)
+      .foreach(b.addFile)
     b.build
   }
 
@@ -55,11 +55,11 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     val definitions = methods.flatMap(m => extractDefs(m.getInputType) ++ extractDefs(m.getOutputType)).toSet
 
     val fp = FunctionalPrinter()
-      .add("swagger: '  2.0'", "info:")
+      .add("swagger: '2.0'", "info:")
       .addIndented(
         "version: not set",
         s"title: '${fileDesc.fileDescriptorObjectName}'",
-        s"info: 'REST API generated from ${fileDesc.getFile.getName}'"
+        s"description: 'REST API generated from ${fileDesc.getFile.getName}'"
       )
       .add("schemes:")
       .addIndented("- http", "- https")
@@ -135,7 +135,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .add("description:")
       .addIndented(s"'Generated from ${m.getFullName}'")
       .add("produces:")
-      .addIndented("'application/json'")
+      .addIndented("['application/json']")
       .add("responses:")
       .indent
       .add("200:")
@@ -157,11 +157,12 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .outdent
 
   private def generateQueryParameters(inputType: Descriptor, prefix: String = ""): PrinterEndo =
-    _.add("parameters:")
-      .print(inputType.getFields.asScala) {
-        case (p, f) =>
-          p.call(generateQueryParameter(f))
-      }
+    _.when(inputType.getFields.asScala.nonEmpty)(
+      _.add("parameters:")
+        .print(inputType.getFields.asScala) {
+          case (p, f) =>
+            p.call(generateQueryParameter(f))
+        })
 
   private def generateQueryParameter(field: FieldDescriptor, prefix: String = ""): PrinterEndo = { printer =>
     field.getJavaType match {
@@ -192,28 +193,27 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
   private def generateDefinition(d: Descriptor): PrinterEndo = {
     _.add(d.getName + ":").indent
       .add("type: object")
-      .add("properties: ")
-      .indent
-      .print(d.getFields.asScala) {
-        case (printer, field) =>
-          if (field.isRepeated) {
-            printer
-              .add(field.getJsonName + ":")
-              .indent
-              .add("type: array", "items:")
-              .indent
-              .call(generateDefinitionType(field))
-              .outdent
-              .outdent
-          } else {
-            printer
-              .add(field.getJsonName + ":")
-              .indent
-              .call(generateDefinitionType(field))
-              .outdent
-          }
-      }
-      .outdent
+      .when(d.getFields.asScala.nonEmpty)(_.add("properties: ").indent
+        .print(d.getFields.asScala) {
+          case (printer, field) =>
+            if (field.isRepeated) {
+              printer
+                .add(field.getJsonName + ":")
+                .indent
+                .add("type: array", "items:")
+                .indent
+                .call(generateDefinitionType(field))
+                .outdent
+                .outdent
+            } else {
+              printer
+                .add(field.getJsonName + ":")
+                .indent
+                .call(generateDefinitionType(field))
+                .outdent
+            }
+        }
+        .outdent)
       .outdent
   }
 
@@ -238,8 +238,8 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
         explored.add(d)
         Set(d) ++ d.getFields.asScala.flatMap { f =>
           f.getJavaType match {
-            case _                => Set.empty[Descriptor]
             case JavaType.MESSAGE => extractDefsRec(f.getMessageType)
+            case _                => Set.empty[Descriptor]
           }
         }
       }
