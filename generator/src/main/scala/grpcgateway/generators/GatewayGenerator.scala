@@ -31,17 +31,16 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           acc + (fp.getName -> FileDescriptor.buildFrom(fp, deps.toArray))
       }
 
-    request.getFileToGenerateList.asScala.foreach {
-      name =>
-        val fileDesc = fileDescByName(name)
-        val responseFile = generateFile(fileDesc)
-        b.addFile(responseFile)
+    request.getFileToGenerateList.asScala.foreach { name =>
+      val fileDesc     = fileDescByName(name)
+      val responseFile = generateFile(fileDesc)
+      b.addFile(responseFile)
     }
     b.build
   }
 
   private def generateFile(fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
-    val b = CodeGeneratorResponse.File.newBuilder()
+    val b          = CodeGeneratorResponse.File.newBuilder()
     val objectName = fileDesc.fileDescriptorObjectName.substring(0, fileDesc.fileDescriptorObjectName.length - 5) + "Gateway"
     b.setName(s"${fileDesc.scalaDirectory}/$objectName.scala")
 
@@ -69,26 +68,30 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     b.build
   }
 
-  private def generateService(service: ServiceDescriptor): PrinterEndo = _
-    .add(s"class ${service.getName}Handler(channel: ManagedChannel)(implicit ec: ExecutionContext)")
-    .indent
-    .add(
-      "extends GrpcGatewayHandler(channel)(ec) {",
-      s"""override val name: String = "${service.getName}"""",
-      s"private val stub = ${service.getName}Grpc.stub(channel)"
-    )
-    .newline
-    .call(generateUnaryCall(service))
-    .outdent
-    .add("}")
-    .newline
+  private def generateService(service: ServiceDescriptor): PrinterEndo =
+    _.add(s"class ${service.getName}Handler(channel: ManagedChannel)(implicit ec: ExecutionContext)").indent
+      .add(
+        "extends GrpcGatewayHandler(channel)(ec) {",
+        s"""override val name: String = "${service.getName}"""",
+        s"private val stub = ${service.getName}Grpc.stub(channel)"
+      )
+      .newline
+      .call(generateSupportsCall(service))
+      .newline
+      .call(generateUnaryCall(service))
+      .outdent
+      .add("}")
+      .newline
 
-  private def generateUnaryCall(service: ServiceDescriptor): PrinterEndo = { printer =>
-    val methods = service.getMethods.asScala.filter { m =>
+  private def getUnaryCallsWithHttpExtension(service: ServiceDescriptor) = {
+    service.getMethods.asScala.filter { m =>
       // only unary calls with http method specified
       !m.isClientStreaming && !m.isServerStreaming && m.getOptions.hasExtension(AnnotationsProto.http)
     }
+  }
 
+  private def generateUnaryCall(service: ServiceDescriptor): PrinterEndo = { printer =>
+    val methods = getUnaryCallsWithHttpExtension(service)
     printer
       .add(s"override def unaryCall(method: HttpMethod, uri: String, body: String): Future[GeneratedMessage] = {")
       .indent
@@ -106,11 +109,41 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .add("}")
   }
 
-  private def generateMethodHandlerCase(method: MethodDescriptor): PrinterEndo = { printer =>
+  private def generateSupportsCall(service: ServiceDescriptor): PrinterEndo = { printer =>
+    val methods = getUnaryCallsWithHttpExtension(service)
+    printer
+      .add(s"override def supportsCall(method: HttpMethod, uri: String): Boolean = {")
+      .indent
+      .add(
+        "val queryString = new QueryStringDecoder(uri)",
+        "(method.name, queryString.path) match {"
+      )
+      .indent
+      .print(methods) { case (p, m) => generateMethodCase(m)(p) }
+      .add("case _ => false")
+      .outdent
+      .add("}")
+      .outdent
+      .add("}")
+  }
+
+  private def generateMethodCase(method: MethodDescriptor): PrinterEndo = { printer =>
     val http = method.getOptions.getExtension(AnnotationsProto.http)
+    http.getPatternCase match {
+      case PatternCase.GET    => printer.add(s"""case ("GET", "${http.getGet}") => true""")
+      case PatternCase.POST   => printer.add(s"""case ("POST", "${http.getPost}") => true""")
+      case PatternCase.PUT    => printer.add(s"""case ("PUT", "${http.getPut}") => true""")
+      case PatternCase.DELETE => printer.add(s"""case ("DELETE", "${http.getDelete}") => true""")
+      case _                  => printer
+    }
+  }
+
+  private def generateMethodHandlerCase(method: MethodDescriptor): PrinterEndo = { printer =>
+    val http       = method.getOptions.getExtension(AnnotationsProto.http)
     val methodName = method.getName.charAt(0).toLower + method.getName.substring(1)
     http.getPatternCase match {
-      case PatternCase.GET => printer
+      case PatternCase.GET =>
+        printer
           .add(s"""case ("GET", "${http.getGet}") => """)
           .indent
           .add("val input = Try {")
@@ -120,28 +153,31 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add("}")
           .add(s"Future.fromTry(input).flatMap(stub.$methodName)")
           .outdent
-      case PatternCase.POST => printer
+      case PatternCase.POST =>
+        printer
           .add(s"""case ("POST", "${http.getPost}") => """)
           .addIndented(
             s"val input = Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body))",
             s"Future.fromTry(input).flatMap(stub.$methodName)"
           )
-      case PatternCase.PUT => printer
+      case PatternCase.PUT =>
+        printer
           .add(s"""case ("PUT", "${http.getPut}") => """)
           .addIndented(
             s"val input = Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body))",
             s"Future.fromTry(input).flatMap(stub.$methodName)"
           )
-      case PatternCase.DELETE => printer
-        .add(s"""case ("DELETE", "${http.getDelete}") => """)
-        .indent
-        .add("val input = Try {")
-        .indent
-        .call(generateInputFromQueryString(method.getInputType))
-        .outdent
-        .add("}")
-        .add(s"Future.fromTry(input).flatMap(stub.$methodName)")
-        .outdent
+      case PatternCase.DELETE =>
+        printer
+          .add(s"""case ("DELETE", "${http.getDelete}") => """)
+          .indent
+          .add("val input = Try {")
+          .indent
+          .call(generateInputFromQueryString(method.getInputType))
+          .outdent
+          .add("}")
+          .add(s"Future.fromTry(input).flatMap(stub.$methodName)")
+          .outdent
       case _ => printer
     }
   }
@@ -150,50 +186,51 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     val args = d.getFields.asScala.map(f => s"${f.getJsonName} = ${inputName(f, prefix)}").mkString(", ")
 
     printer
-      .print(d.getFields.asScala) { case (p, f) =>
-        f.getJavaType match {
-          case JavaType.MESSAGE => p
-            .add(s"val ${inputName(f, prefix)} = {")
-            .indent
-            .call(generateInputFromQueryString(f.getMessageType, s"$prefix.${f.getJsonName}"))
-            .outdent
-            .add("}")
-          case JavaType.ENUM => p
-            .add(s"val ${inputName(f, prefix)} = ")
-            .addIndented(
-              s"""${f.getName}.valueOf(queryString.parameters().get("$prefix${f.getJsonName}").asScala.head)"""
-            )
-          case JavaType.BOOLEAN => p
-            .add(s"val ${inputName(f, prefix)} = ")
-            .addIndented(
-              s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toBoolean"""
-            )
-          case JavaType.DOUBLE => p
-            .add(s"val ${inputName(f, prefix)} = ")
-            .addIndented(
-              s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toDouble"""
-            )
-          case JavaType.FLOAT => p
-            .add(s"val ${inputName(f, prefix)} = ")
-            .addIndented(
-              s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toFloat"""
-            )
-          case JavaType.INT => p
-            .add(s"val ${inputName(f, prefix)} = ")
-            .addIndented(
-              s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toInt"""
-            )
-          case JavaType.LONG => p
-            .add(s"val ${inputName(f, prefix)} = ")
-            .addIndented(
-              s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toLong"""
-            )
-          case JavaType.STRING => p
-            .add(s"val ${inputName(f, prefix)} = ")
-            .addIndented(
-              s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head"""
-            )
-        }
+      .print(d.getFields.asScala) {
+        case (p, f) =>
+          f.getJavaType match {
+            case JavaType.MESSAGE =>
+              p.add(s"val ${inputName(f, prefix)} = {")
+                .indent
+                .call(generateInputFromQueryString(f.getMessageType, s"$prefix.${f.getJsonName}"))
+                .outdent
+                .add("}")
+            case JavaType.ENUM =>
+              p.add(s"val ${inputName(f, prefix)} = ")
+                .addIndented(
+                  s"""${f.getName}.valueOf(queryString.parameters().get("$prefix${f.getJsonName}").asScala.head)"""
+                )
+            case JavaType.BOOLEAN =>
+              p.add(s"val ${inputName(f, prefix)} = ")
+                .addIndented(
+                  s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toBoolean"""
+                )
+            case JavaType.DOUBLE =>
+              p.add(s"val ${inputName(f, prefix)} = ")
+                .addIndented(
+                  s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toDouble"""
+                )
+            case JavaType.FLOAT =>
+              p.add(s"val ${inputName(f, prefix)} = ")
+                .addIndented(
+                  s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toFloat"""
+                )
+            case JavaType.INT =>
+              p.add(s"val ${inputName(f, prefix)} = ")
+                .addIndented(
+                  s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toInt"""
+                )
+            case JavaType.LONG =>
+              p.add(s"val ${inputName(f, prefix)} = ")
+                .addIndented(
+                  s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toLong"""
+                )
+            case JavaType.STRING =>
+              p.add(s"val ${inputName(f, prefix)} = ")
+                .addIndented(
+                  s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head"""
+                )
+          }
       }
       .add(s"${d.getName}($args)")
   }
