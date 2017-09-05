@@ -4,7 +4,8 @@ import java.nio.charset.StandardCharsets
 
 import com.trueaccord.scalapb.GeneratedMessage
 import com.trueaccord.scalapb.json.JsonFormat
-import io.grpc.ManagedChannel
+import io.grpc.Status.Code
+import io.grpc.{ManagedChannel, StatusRuntimeException}
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.{ChannelFutureListener, ChannelHandlerContext, ChannelInboundHandlerAdapter}
@@ -47,7 +48,27 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
               val status = e match {
                 case _: UnsupportedOperationException => HttpResponseStatus.NOT_FOUND
                 case _: NoSuchElementException        => HttpResponseStatus.BAD_REQUEST
-                case _                                => HttpResponseStatus.INTERNAL_SERVER_ERROR
+                case s: StatusRuntimeException =>
+                  s.getStatus.getCode match {
+                    case Code.OK                  => HttpResponseStatus.OK
+                    case Code.CANCELLED           => HttpResponseStatus.GONE
+                    case Code.UNKNOWN             => HttpResponseStatus.NOT_FOUND
+                    case Code.INVALID_ARGUMENT    => HttpResponseStatus.BAD_REQUEST
+                    case Code.DEADLINE_EXCEEDED   => HttpResponseStatus.GATEWAY_TIMEOUT
+                    case Code.NOT_FOUND           => HttpResponseStatus.NOT_FOUND
+                    case Code.ALREADY_EXISTS      => HttpResponseStatus.CONFLICT
+                    case Code.PERMISSION_DENIED   => HttpResponseStatus.FORBIDDEN
+                    case Code.RESOURCE_EXHAUSTED  => HttpResponseStatus.INSUFFICIENT_STORAGE
+                    case Code.FAILED_PRECONDITION => HttpResponseStatus.PRECONDITION_FAILED
+                    case Code.ABORTED             => HttpResponseStatus.GONE
+                    case Code.OUT_OF_RANGE        => HttpResponseStatus.BAD_REQUEST
+                    case Code.UNIMPLEMENTED       => HttpResponseStatus.NOT_IMPLEMENTED
+                    case Code.INTERNAL            => HttpResponseStatus.INTERNAL_SERVER_ERROR
+                    case Code.UNAVAILABLE         => HttpResponseStatus.NOT_ACCEPTABLE
+                    case Code.DATA_LOSS           => HttpResponseStatus.PARTIAL_CONTENT
+                    case Code.UNAUTHENTICATED     => HttpResponseStatus.UNAUTHORIZED
+                  }
+                case _ => HttpResponseStatus.INTERNAL_SERVER_ERROR
               }
               val res = new DefaultHttpResponse(req.protocolVersion(), status)
               ctx.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE)
