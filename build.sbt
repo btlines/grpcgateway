@@ -15,10 +15,10 @@ lazy val runtime = (project in file("runtime"))
     crossScalaVersions := Seq("2.1.2.2", "2.11.11"),
     name := "GrpcGatewayRuntime",
     libraryDependencies ++= Seq(
-      "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.0-pre5",
-      "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % "0.6.0-pre5",
-      "com.trueaccord.scalapb" %% "scalapb-json4s"          % "0.3.0",
-      "io.grpc"                %  "grpc-netty"              % "1.4.0",
+      "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.3",
+      "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % "0.6.3",
+      "com.trueaccord.scalapb" %% "scalapb-json4s"          % "0.3.2",
+      "io.grpc"                %  "grpc-netty"              % "1.6.1",
       "org.webjars"            %  "swagger-ui"              % "3.1.5",
       "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf"
     ),
@@ -39,7 +39,7 @@ lazy val generator = (project in file("generator"))
     scalaVersion := "2.10.6",
     name := "GrpcGatewayGenerator",
     libraryDependencies ++= Seq(
-      "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.0-pre5",
+      "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.3",
       "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf"
     ),
     PB.protoSources in Compile += target.value / "protobuf_external",
