@@ -12,7 +12,7 @@ lazy val runtime = (project in file("runtime"))
   .settings(
     commonSettings,
     scalaVersion := "2.12.2",
-    crossScalaVersions := Seq("2.1.2.2", "2.11.11"),
+    crossScalaVersions := Seq("2.12.2", "2.11.11"),
     name := "GrpcGatewayRuntime",
     libraryDependencies ++= Seq(
       "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.3",
