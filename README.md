@@ -24,7 +24,7 @@ addSbtPlugin("com.thesamet" % "sbt-protoc" % "0.99.9")
 resolvers += Resolver.bintrayRepo("beyondthelines", "maven")
 
 libraryDependencies ++= Seq(
-  "com.trueaccord.scalapb" %% "compilerplugin" % "0.6.0-pre5",
+  "com.trueaccord.scalapb" %% "compilerplugin" % "0.6.7",
   "beyondthelines"         %% "grpcgatewaygenerator" % "0.0.5"
 )
 ```
