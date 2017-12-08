@@ -1,5 +1,5 @@
 organization in ThisBuild := "beyondthelines"
-version in ThisBuild := "0.0.4"
+version in ThisBuild := "0.0.5"
 licenses in ThisBuild := ("MIT", url("http://opensource.org/licenses/MIT")) :: Nil
 bintrayOrganization in ThisBuild := Some("beyondthelines")
 bintrayPackageLabels in ThisBuild := Seq("scala", "protobuf", "grpc")
@@ -31,7 +31,7 @@ lazy val runtime = (project in file("runtime"))
 
 lazy val generator = (project in file("generator"))
   .settings(
-    scalaVersion := "2.10.6",
+    crossScalaVersions := Seq("2.12.4", "2.10.6"),
     name := "GrpcGatewayGenerator",
     libraryDependencies ++= Seq(
       "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.7",

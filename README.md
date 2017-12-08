@@ -25,7 +25,7 @@ resolvers += Resolver.bintrayRepo("beyondthelines", "maven")
 
 libraryDependencies ++= Seq(
   "com.trueaccord.scalapb" %% "compilerplugin" % "0.6.0-pre5",
-  "beyondthelines"         %% "grpcgatewaygenerator" % "0.0.4"
+  "beyondthelines"         %% "grpcgatewaygenerator" % "0.0.5"
 )
 ```
 
@@ -45,7 +45,7 @@ PB.targets in Compile := Seq(
 
 resolvers += Resolver.bintrayRepo("beyondthelines", "maven")
 
-libraryDependencies += "beyondthelines" %% "grpcgatewayruntime" % "0.0.4" % "compile,protobuf"
+libraryDependencies += "beyondthelines" %% "grpcgatewayruntime" % "0.0.5" % "compile,protobuf"
 ```
 
 ### Usage
