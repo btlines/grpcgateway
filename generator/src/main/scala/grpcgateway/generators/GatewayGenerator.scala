@@ -6,23 +6,23 @@ import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import com.google.protobuf.Descriptors._
 import com.google.protobuf.ExtensionRegistry
 import com.google.protobuf.compiler.PluginProtos.{CodeGeneratorRequest, CodeGeneratorResponse}
-import com.trueaccord.scalapb.Scalapb
 import com.trueaccord.scalapb.compiler.FunctionalPrinter.PrinterEndo
 import com.trueaccord.scalapb.compiler.{DescriptorPimps, FunctionalPrinter}
 
 import scala.collection.JavaConverters._
+import scalapbshade.v0_6_7.com.trueaccord.scalapb.Scalapb
 
 object GatewayGenerator extends protocbridge.ProtocCodeGenerator with DescriptorPimps {
 
-  override def registerExtensions(registry: ExtensionRegistry): Unit = {
-    Scalapb.registerAllExtensions(registry)
-    AnnotationsProto.registerAllExtensions(registry)
-  }
-
   override val params = com.trueaccord.scalapb.compiler.GeneratorParams()
 
-  override def run(request: CodeGeneratorRequest): CodeGeneratorResponse = {
+  override def run(requestBytes: Array[Byte]): Array[Byte] = {
+    val registry = ExtensionRegistry.newInstance()
+    Scalapb.registerAllExtensions(registry)
+    AnnotationsProto.registerAllExtensions(registry)
+
     val b = CodeGeneratorResponse.newBuilder
+    val request = CodeGeneratorRequest.parseFrom(requestBytes, registry)
 
     val fileDescByName: Map[String, FileDescriptor] =
       request.getProtoFileList.asScala.foldLeft[Map[String, FileDescriptor]](Map.empty) {
@@ -36,7 +36,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       val responseFile = generateFile(fileDesc)
       b.addFile(responseFile)
     }
-    b.build
+    b.build.toByteArray
   }
 
   private def generateFile(fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
