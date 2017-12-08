@@ -1,25 +1,21 @@
-lazy val commonSettings = Seq(
-  organization := "beyondthelines",
-  version := "0.0.4",
-  licenses := ("MIT", url("http://opensource.org/licenses/MIT")) :: Nil,
-  bintrayOrganization := Some("beyondthelines"),
-  bintrayPackageLabels := Seq("scala", "protobuf", "grpc"),
-    // set python location (only required for scalapb under windows)
-  PB.pythonExe := "C:\\Python27\\Python.exe"
-)
+organization in ThisBuild := "beyondthelines"
+version in ThisBuild := "0.0.4"
+licenses in ThisBuild := ("MIT", url("http://opensource.org/licenses/MIT")) :: Nil
+bintrayOrganization in ThisBuild := Some("beyondthelines")
+bintrayPackageLabels in ThisBuild := Seq("scala", "protobuf", "grpc")
+scalaVersion in ThisBuild := "2.12.4"
 
 lazy val runtime = (project in file("runtime"))
   .settings(
-    commonSettings,
-    scalaVersion := "2.12.2",
-    crossScalaVersions := Seq("2.12.2", "2.11.11"),
+    crossScalaVersions := Seq("2.12.4", "2.11.11"),
     name := "GrpcGatewayRuntime",
     libraryDependencies ++= Seq(
-      "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.3",
-      "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % "0.6.3",
-      "com.trueaccord.scalapb" %% "scalapb-json4s"          % "0.3.2",
-      "io.grpc"                %  "grpc-netty"              % "1.6.1",
-      "org.webjars"            %  "swagger-ui"              % "3.1.5",
+      "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.7",
+      "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % "0.6.7",
+      "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % "0.6.7",
+      "com.trueaccord.scalapb" %% "scalapb-json4s"          % "0.3.3",
+      "io.grpc"                %  "grpc-netty"              % "1.8.0",
+      "org.webjars"            %  "swagger-ui"              % "3.5.0",
       "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf"
     ),
     PB.protoSources in Compile += target.value / "protobuf_external",
@@ -35,11 +31,11 @@ lazy val runtime = (project in file("runtime"))
 
 lazy val generator = (project in file("generator"))
   .settings(
-    commonSettings,
     scalaVersion := "2.10.6",
     name := "GrpcGatewayGenerator",
     libraryDependencies ++= Seq(
-      "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.3",
+      "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.7",
+      "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % "0.6.7",
       "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf"
     ),
     PB.protoSources in Compile += target.value / "protobuf_external",

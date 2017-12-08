@@ -11,7 +11,7 @@ import io.netty.handler.codec.http._
 import io.netty.util.CharsetUtil
 
 object SwaggerHandler {
-  val SwaggerUiPath: Path   = Paths.get("META-INF/resources/webjars/swagger-ui/3.1.5")
+  val SwaggerUiPath: Path   = Paths.get("META-INF/resources/webjars/swagger-ui/3.5.0")
   val SpecsPrefix: Path     = Paths.get("/specs/")
   val DocsPrefix: Path      = Paths.get("/docs/")
   val DocsLandingPage: Path = Paths.get("/docs/index.html")
