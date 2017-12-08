@@ -19,7 +19,7 @@ You need to enable [`sbt-protoc`](https://github.com/thesamet/sbt-protoc) plugin
 You can do it by adding a `protoc.sbt` file into your `project` folder with the following lines:
 
 ```scala
-addSbtPlugin("com.thesamet" % "sbt-protoc" % "0.99.9")
+addSbtPlugin("com.thesamet" % "sbt-protoc" % "0.99.13")
 
 resolvers += Resolver.bintrayRepo("beyondthelines", "maven")
 
