@@ -1,6 +1,6 @@
 package grpcgateway.server
 
-import grpcgateway.handlers.{GrpcGatewayHandler, SwaggerHandler}
+import grpcgateway.handlers.{GrpcGatewayHandler, MethodNotFoundHandler, SwaggerHandler}
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
@@ -37,6 +37,7 @@ case class GrpcGatewayServerBuilder(
           services.foreach { handler =>
             ch.pipeline().addLast(handler.name, handler)
           }
+          ch.pipeline().addLast(new MethodNotFoundHandler())
         }
       })
 

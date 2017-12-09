@@ -45,7 +45,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     val b = CodeGeneratorResponse.File.newBuilder()
 
     val objectName = fileDesc.fileDescriptorObjectName.substring(0, fileDesc.fileDescriptorObjectName.length - 5)
-    b.setName(s"$objectName.yml")
+    b.setName(s"${objectName}Service.yml")
 
     val methods = fileDesc.getServices.asScala
       .flatMap(_.getMethods.asScala)

@@ -52,7 +52,8 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
         "import _root_.com.trueaccord.scalapb.json.JsonFormat",
         "import _root_.grpcgateway.handlers.GrpcGatewayHandler",
         "import _root_.io.grpc.ManagedChannel",
-        "import _root_.io.netty.handler.codec.http.{HttpMethod, QueryStringDecoder}"
+        "import _root_.io.netty.handler.codec.http.{HttpMethod, QueryStringDecoder}",
+        "import org.json4s.JsonAST._"
       )
       .newline
       .add(
@@ -93,7 +94,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
   private def generateUnaryCall(service: ServiceDescriptor): PrinterEndo = { printer =>
     val methods = getUnaryCallsWithHttpExtension(service)
     printer
-      .add(s"override def unaryCall(method: HttpMethod, uri: String, body: String): Future[GeneratedMessage] = {")
+      .add(s"override def unaryCall(method: HttpMethod, uri: String, body: JValue): Future[GeneratedMessage] = {")
       .indent
       .add(
         "val queryString = new QueryStringDecoder(uri)",
@@ -156,15 +157,17 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       case PatternCase.POST =>
         printer
           .add(s"""case ("POST", "${http.getPost}") => """)
+          .add("for {")
           .addIndented(
-            s"val input = Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body))",
-            s"Future.fromTry(input).flatMap(stub.$methodName)"
+            s"""msg <- Future(JsonFormat.fromJson[${method.getInputType.getName}](body)).recover { case _ => throw new Exception("Wrong json input. Check proto file") }""",
+            s"res <- stub.$methodName(msg)"
           )
+          .add("} yield res")
       case PatternCase.PUT =>
         printer
           .add(s"""case ("PUT", "${http.getPut}") => """)
           .addIndented(
-            s"val input = Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body))",
+            s"val input = Try(JsonFormat.fromJson[${method.getInputType.getName}](body))",
             s"Future.fromTry(input).flatMap(stub.$methodName)"
           )
       case PatternCase.DELETE =>
@@ -230,6 +233,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
                 .addIndented(
                   s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head"""
                 )
+            case jt => throw new Exception(s"Unknown java type: $jt")
           }
       }
       .add(s"${d.getName}($args)")
