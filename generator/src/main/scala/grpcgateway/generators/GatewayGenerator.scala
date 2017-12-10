@@ -166,10 +166,12 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       case PatternCase.PUT =>
         printer
           .add(s"""case ("PUT", "${http.getPut}") => """)
+          .add("for {")
           .addIndented(
-            s"val input = Try(JsonFormat.fromJson[${method.getInputType.getName}](body))",
-            s"Future.fromTry(input).flatMap(stub.$methodName)"
+            s"""msg <- Future(JsonFormat.fromJson[${method.getInputType.getName}](body)).recover { case _ => throw new Exception("Wrong json input. Check proto file") }""",
+            s"res <- stub.$methodName(msg)"
           )
+          .add("} yield res")
       case PatternCase.DELETE =>
         printer
           .add(s"""case ("DELETE", "${http.getDelete}") => """)
