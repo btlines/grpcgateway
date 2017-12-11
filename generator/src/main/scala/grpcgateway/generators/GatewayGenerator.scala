@@ -58,6 +58,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .add(
         "import scala.collection.JavaConverters._",
         "import scala.concurrent.{ExecutionContext, Future}",
+        "import com.trueaccord.scalapb.json.JsonFormatException",
         "import scala.util._"
       )
       .newline
@@ -133,7 +134,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
 
     printer
       .add("private def jsonRecover[M]: PartialFunction[Throwable, Try[M]] = {")
-      .addIndented("""case _ => Failure(InvalidArgument("Wrong json input. Check proto file"))""")
+      .addIndented(s"""case err => Failure(InvalidArgument("Wrong json input. Check proto file. Details: " + $${err.getMessage()}))""")
       .add("}")
 
   }
