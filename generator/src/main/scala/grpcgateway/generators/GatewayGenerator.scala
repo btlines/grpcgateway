@@ -50,16 +50,15 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .add(
         "import _root_.com.trueaccord.scalapb.GeneratedMessage",
         "import _root_.com.trueaccord.scalapb.json.JsonFormat",
-        "import _root_.grpcgateway.handlers.GrpcGatewayHandler",
-        "import _root_.io.grpc.ManagedChannel",
+        "import _root_.grpcgateway.handlers._",
+        "import _root_.io.grpc._",
         "import _root_.io.netty.handler.codec.http.{HttpMethod, QueryStringDecoder}",
-        "import org.json4s.JsonAST._"
       )
       .newline
       .add(
         "import scala.collection.JavaConverters._",
         "import scala.concurrent.{ExecutionContext, Future}",
-        "import scala.util.Try"
+        "import scala.util._"
       )
       .newline
       .print(fileDesc.getServices.asScala) { case (p, s) => generateService(s)(p) }
@@ -76,6 +75,8 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
         s"""override val name: String = "${service.getName}"""",
         s"private val stub = ${service.getName}Grpc.stub(channel)"
       )
+      .newline
+      .call(generateRecoverJsonCall())
       .newline
       .call(generateSupportsCall(service))
       .newline
@@ -94,7 +95,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
   private def generateUnaryCall(service: ServiceDescriptor): PrinterEndo = { printer =>
     val methods = getUnaryCallsWithHttpExtension(service)
     printer
-      .add(s"override def unaryCall(method: HttpMethod, uri: String, body: JValue): Future[GeneratedMessage] = {")
+      .add(s"override def unaryCall(method: HttpMethod, uri: String, body: String): Future[GeneratedMessage] = {")
       .indent
       .add(
         "val queryString = new QueryStringDecoder(uri)",
@@ -103,7 +104,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .indent
       .print(methods) { case (p, m) => generateMethodHandlerCase(m)(p) }
       .add("case (methodName, path) => ")
-      .addIndented("""Future.failed(new UnsupportedOperationException(s"No route defined for $methodName($path)"))""")
+      .addIndented("""Future.failed(InvalidArgument(s"No route defined for $methodName($path)"))""")
       .outdent
       .add("}")
       .outdent
@@ -126,6 +127,15 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .add("}")
       .outdent
       .add("}")
+  }
+
+  private def generateRecoverJsonCall(): PrinterEndo = { printer =>
+
+    printer
+      .add("private def jsonRecover[M]: PartialFunction[Throwable, Try[M]] = {")
+      .addIndented("""case _ => Failure(InvalidArgument("Wrong json input. Check proto file"))""")
+      .add("}")
+
   }
 
   private def generateMethodCase(method: MethodDescriptor): PrinterEndo = { printer =>
@@ -159,7 +169,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add(s"""case ("POST", "${http.getPost}") => """)
           .add("for {")
           .addIndented(
-            s"""msg <- Future(JsonFormat.fromJson[${method.getInputType.getName}](body)).recover { case _ => throw new Exception("Wrong json input. Check proto file") }""",
+            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body)).recoverWith(jsonRecover))""",
             s"res <- stub.$methodName(msg)"
           )
           .add("} yield res")
@@ -168,7 +178,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add(s"""case ("PUT", "${http.getPut}") => """)
           .add("for {")
           .addIndented(
-            s"""msg <- Future(JsonFormat.fromJson[${method.getInputType.getName}](body)).recover { case _ => throw new Exception("Wrong json input. Check proto file") }""",
+            s"""msg <- Future.fromTry(JsonFormat.fromJsonString[${method.getInputType.getName}](body).recoverWith(jsonRecover))""",
             s"res <- stub.$methodName(msg)"
           )
           .add("} yield res")
