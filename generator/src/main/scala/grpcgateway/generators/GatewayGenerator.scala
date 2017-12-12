@@ -77,8 +77,6 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
         s"private val stub = ${service.getName}Grpc.stub(channel)"
       )
       .newline
-      .call(generateRecoverJsonCall())
-      .newline
       .call(generateSupportsCall(service))
       .newline
       .call(generateUnaryCall(service))
@@ -130,15 +128,6 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .add("}")
   }
 
-  private def generateRecoverJsonCall(): PrinterEndo = { printer =>
-
-    printer
-      .add("private def jsonRecover[M]: PartialFunction[Throwable, Try[M]] = {")
-      .addIndented(s"""case err => Failure(InvalidArgument("Wrong json input. Check proto file. Details: " + $${err.getMessage()}))""")
-      .add("}")
-
-  }
-
   private def generateMethodCase(method: MethodDescriptor): PrinterEndo = { printer =>
     val http = method.getOptions.getExtension(AnnotationsProto.http)
     http.getPatternCase match {
@@ -170,7 +159,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add(s"""case ("POST", "${http.getPost}") => """)
           .add("for {")
           .addIndented(
-            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body)).recoverWith(jsonRecover))""",
+            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
             s"res <- stub.$methodName(msg)"
           )
           .add("} yield res")
@@ -179,7 +168,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add(s"""case ("PUT", "${http.getPut}") => """)
           .add("for {")
           .addIndented(
-            s"""msg <- Future.fromTry(JsonFormat.fromJsonString[${method.getInputType.getName}](body).recoverWith(jsonRecover))""",
+            s"""msg <- Future.fromTry(JsonFormat.fromJsonString[${method.getInputType.getName}](body).recoverWith(jsonException2GatewayExceptionPF))""",
             s"res <- stub.$methodName(msg)"
           )
           .add("} yield res")

@@ -2,9 +2,13 @@ package grpcgateway
 
 import java.nio.charset.StandardCharsets
 
+import com.trueaccord.scalapb.json.JsonFormatException
 import io.grpc.Status.Code
 import io.netty.buffer.Unpooled
 import io.netty.handler.codec.http._
+
+import scala.util.{Failure, Try}
+import handlers._
 
 package object handlers {
 
@@ -48,6 +52,12 @@ package object handlers {
 
     res
 
+  }
+
+  def jsonException2GatewayExceptionPF[U]: PartialFunction[Throwable, Try[U]] = {
+    case _: NoSuchElementException => Failure(InvalidArgument("Wrong json input. Check proto file"))
+    case err: JsonFormatException => Failure(InvalidArgument("Wrong json syntax: " + err.msg))
+    case err => Failure(InvalidArgument("Wrong json input. Check proto file. Details: " + err.getMessage))
   }
 
 }
