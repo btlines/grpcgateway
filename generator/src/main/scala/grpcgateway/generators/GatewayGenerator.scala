@@ -50,15 +50,16 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .add(
         "import _root_.com.trueaccord.scalapb.GeneratedMessage",
         "import _root_.com.trueaccord.scalapb.json.JsonFormat",
-        "import _root_.grpcgateway.handlers.GrpcGatewayHandler",
-        "import _root_.io.grpc.ManagedChannel",
-        "import _root_.io.netty.handler.codec.http.{HttpMethod, QueryStringDecoder}"
+        "import _root_.grpcgateway.handlers._",
+        "import _root_.io.grpc._",
+        "import _root_.io.netty.handler.codec.http.{HttpMethod, QueryStringDecoder}",
       )
       .newline
       .add(
         "import scala.collection.JavaConverters._",
         "import scala.concurrent.{ExecutionContext, Future}",
-        "import scala.util.Try"
+        "import com.trueaccord.scalapb.json.JsonFormatException",
+        "import scala.util._"
       )
       .newline
       .print(fileDesc.getServices.asScala) { case (p, s) => generateService(s)(p) }
@@ -102,7 +103,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .indent
       .print(methods) { case (p, m) => generateMethodHandlerCase(m)(p) }
       .add("case (methodName, path) => ")
-      .addIndented("""Future.failed(new UnsupportedOperationException(s"No route defined for $methodName($path)"))""")
+      .addIndented("""Future.failed(InvalidArgument(s"No route defined for $methodName($path)"))""")
       .outdent
       .add("}")
       .outdent
@@ -156,17 +157,21 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       case PatternCase.POST =>
         printer
           .add(s"""case ("POST", "${http.getPost}") => """)
+          .add("for {")
           .addIndented(
-            s"val input = Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body))",
-            s"Future.fromTry(input).flatMap(stub.$methodName)"
+            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
+            s"res <- stub.$methodName(msg)"
           )
+          .add("} yield res")
       case PatternCase.PUT =>
         printer
           .add(s"""case ("PUT", "${http.getPut}") => """)
+          .add("for {")
           .addIndented(
-            s"val input = Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body))",
-            s"Future.fromTry(input).flatMap(stub.$methodName)"
+            s"""msg <- Future.fromTry(JsonFormat.fromJsonString[${method.getInputType.getName}](body).recoverWith(jsonException2GatewayExceptionPF))""",
+            s"res <- stub.$methodName(msg)"
           )
+          .add("} yield res")
       case PatternCase.DELETE =>
         printer
           .add(s"""case ("DELETE", "${http.getDelete}") => """)
@@ -230,6 +235,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
                 .addIndented(
                   s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head"""
                 )
+            case jt => throw new Exception(s"Unknown java type: $jt")
           }
       }
       .add(s"${d.getName}($args)")

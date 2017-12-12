@@ -6,7 +6,7 @@ import javax.activation.MimetypesFileTypeMap
 import io.grpc.internal.IoUtils
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandler.Sharable
-import io.netty.channel.{ChannelHandlerContext, ChannelInboundHandlerAdapter}
+import io.netty.channel.{ChannelFutureListener, ChannelHandlerContext, ChannelInboundHandlerAdapter}
 import io.netty.handler.codec.http._
 import io.netty.util.CharsetUtil
 
@@ -29,18 +29,17 @@ class SwaggerHandler(services: Seq[GrpcGatewayHandler]) extends ChannelInboundHa
         case RootPath        => Some(createRedirectResponse(req, DocsLandingPage))
         case DocsPrefix      => Some(createRedirectResponse(req, DocsLandingPage))
         case DocsLandingPage => Some(createStringResponse(req, indexPage.toString()))
-        case p if p.startsWith(DocsPrefix) => {
+        case p if p.startsWith(DocsPrefix) =>
           // swagger UI loading its own resources
           val resourcePath = SwaggerUiPath.resolve(RootPath.relativize(path).subpath(1, path.getNameCount))
           Some(createResourceResponse(req, resourcePath))
-        }
         case p if p.startsWith(SpecsPrefix) =>
           // swagger UI loading up spec file
           Some(createResourceResponse(req, RootPath.relativize(path)))
         case _ => None
       }
       res match {
-        case Some(response) => ctx.writeAndFlush(response)
+        case Some(response) => ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE)
         case None           => super.channelRead(ctx, msg)
       }
     case _ => super.channelRead(ctx, msg)
