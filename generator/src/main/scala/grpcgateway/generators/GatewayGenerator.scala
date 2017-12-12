@@ -52,7 +52,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
         "import _root_.com.trueaccord.scalapb.json.JsonFormat",
         "import _root_.grpcgateway.handlers._",
         "import _root_.io.grpc._",
-        "import _root_.io.netty.handler.codec.http.{HttpMethod, QueryStringDecoder}",
+        "import _root_.io.netty.handler.codec.http.{HttpMethod, QueryStringDecoder}"
       )
       .newline
       .add(

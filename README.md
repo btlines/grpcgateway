@@ -25,7 +25,7 @@ resolvers += Resolver.bintrayRepo("beyondthelines", "maven")
 
 libraryDependencies ++= Seq(
   "com.trueaccord.scalapb" %% "compilerplugin" % "0.6.7",
-  "beyondthelines"         %% "grpcgatewaygenerator" % "0.0.5"
+  "beyondthelines"         %% "grpcgatewaygenerator" % "0.0.6"
 )
 ```
 
@@ -45,7 +45,7 @@ PB.targets in Compile := Seq(
 
 resolvers += Resolver.bintrayRepo("beyondthelines", "maven")
 
-libraryDependencies += "beyondthelines" %% "grpcgatewayruntime" % "0.0.5" % "compile,protobuf"
+libraryDependencies += "beyondthelines" %% "grpcgatewayruntime" % "0.0.6" % "compile,protobuf"
 ```
 
 ### Usage
@@ -100,9 +100,9 @@ sys.addShutdownHook {
 
 A swagger spec for the supported services is automatically generated and served using swagger-ui.
 
-Once the gateway is running you can point your browser to [http://localhost:8981/docs/index.html?url=/specs/RouteGuide.yml](http://localhost:8981/docs/index.html?url=/specs/RouteGuide.yml)
+Once the gateway is running you can point your browser to [http://localhost:8981/docs/index.html?url=/specs/RouteGuideService.yml](http://localhost:8981/docs/index.html?url=/specs/RouteGuideService.yml)
 
-where `RouteGuide.yml` is the Swagger spec automatically generated from the protobuf files.
+where `RouteGuideService.yml` is the Swagger spec automatically generated from the protobuf files.
 
 
 ## Limitations

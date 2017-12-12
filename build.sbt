@@ -1,5 +1,5 @@
 organization in ThisBuild := "beyondthelines"
-version in ThisBuild := "0.0.6-SNAPSHOT"
+version in ThisBuild := "0.0.6"
 licenses in ThisBuild := ("MIT", url("http://opensource.org/licenses/MIT")) :: Nil
 bintrayOrganization in ThisBuild := Some("beyondthelines")
 bintrayPackageLabels in ThisBuild := Seq("scala", "protobuf", "grpc")
