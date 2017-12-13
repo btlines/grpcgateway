@@ -33,11 +33,10 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
 
           unaryCall(req.method(), req.uri(), body)
             .map(JsonFormat.toJsonString)
-            .map(_.getBytes(StandardCharsets.UTF_8))
             .map(json => {
               buildFullHttpResponse(
                 requestMsg = req,
-                responseBody = new String(json, StandardCharsets.UTF_8),
+                responseBody = json,
                 responseStatus = HttpResponseStatus.OK,
                 responseContentType = "application/json"
               )
