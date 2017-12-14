@@ -39,15 +39,17 @@ package object handlers {
    responseContentType: String
   ): FullHttpResponse = {
 
+    val buf = Unpooled.copiedBuffer(responseBody, StandardCharsets.UTF_8)
+
     val res = new DefaultFullHttpResponse(
       requestMsg.protocolVersion(),
       responseStatus,
-      Unpooled.copiedBuffer(responseBody, StandardCharsets.UTF_8)
+      buf
     )
 
     res.headers().set(HttpHeaderNames.CONTENT_TYPE, responseContentType)
 
-    HttpUtil.setContentLength(res, responseBody.length)
+    HttpUtil.setContentLength(res, buf.readableBytes)
     HttpUtil.setKeepAlive(res, HttpUtil.isKeepAlive(requestMsg))
 
     res
