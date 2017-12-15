@@ -168,7 +168,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add(s"""case ("PUT", "${http.getPut}") => """)
           .add("for {")
           .addIndented(
-            s"""msg <- Future.fromTry(JsonFormat.fromJsonString[${method.getInputType.getName}](body).recoverWith(jsonException2GatewayExceptionPF))""",
+            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
             s"res <- stub.$methodName(msg)"
           )
           .add("} yield res")
