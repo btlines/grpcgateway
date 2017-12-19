@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+message simpleMsg {
+    string strProp = 1;
+    string boolProp = 2;
+}
