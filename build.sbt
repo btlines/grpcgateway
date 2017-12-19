@@ -12,7 +12,6 @@ lazy val runtime = (project in file("runtime"))
     libraryDependencies ++= Seq(
       "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.7",
       "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % "0.6.7",
-      "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % "0.6.7",
       "com.trueaccord.scalapb" %% "scalapb-json4s"          % "0.3.3",
       "io.grpc"                %  "grpc-netty"              % "1.8.0",
       "org.webjars"            %  "swagger-ui"              % "3.5.0",
