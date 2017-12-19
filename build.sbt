@@ -34,7 +34,7 @@ lazy val plugin = (project in file("plugin"))
     sbtPlugin := true,
     name := "GrpcGatewayPlugin",
     libraryDependencies ++= Seq(
-      "beyondthelines" %% "grpcgatewaygenerator" % version.value
+      "beyondthelines" %% "grpcgatewaygenerator" % "0.0.6"
     ),
     addSbtPlugin("com.thesamet" % "sbt-protoc" % "0.99.13")
   )
