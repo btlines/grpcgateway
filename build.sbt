@@ -36,8 +36,7 @@ lazy val generator = (project in file("generator"))
     libraryDependencies ++= Seq(
       "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.7",
       "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % "0.6.7",
-      "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf",
-      "org.scalatest" %% "scalatest" % "3.0.4" % Test
+      "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf"
     ),
     PB.protoSources in Compile += target.value / "protobuf_external",
     includeFilter in PB.generate := new SimpleFilter(
