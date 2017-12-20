@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package hellogrpc.calc;
+
+service CalcService {
+
+    rpc CalcSum (SumRequest) returns (CalcResponse) {}
+
+}
+
+message SumRequest {
+
+    int32 a = 1;
+    int32 b = 2;
+
+}
+
+message CalcResponse {
+
+    int32 result = 1;
+
+}

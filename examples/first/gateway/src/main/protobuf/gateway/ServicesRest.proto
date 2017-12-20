@@ -1,0 +1,14 @@
+
+syntax = "proto3";
+
+package grpcgateway;
+
+import "hellogrpc/calc/CalcService.proto";
+
+service RestService {
+
+    rpc CalcSum (SumRequest) returns (CalcResponse) {
+
+    }
+
+}

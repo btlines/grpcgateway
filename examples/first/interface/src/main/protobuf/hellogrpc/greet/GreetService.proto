@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package hellogrpc.greet;
+
+service GreetService {
+
+    rpc Greet (GreetRequest) returns (GreetResponse) {}
+
+}
+
+message GreetRequest {
+
+    string name = 1;
+
+}
+
+message GreetResponse {
+
+    string greeting = 1;
+
+}
