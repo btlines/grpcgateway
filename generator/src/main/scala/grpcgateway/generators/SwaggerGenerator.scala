@@ -53,6 +53,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
         // only unary calls with http method specified
         !m.isClientStreaming && !m.isServerStreaming && m.getOptions.hasExtension(AnnotationsProto.http)
       }
+    val paths = methods.groupBy(extractPath)
     val definitions = methods.flatMap(m => extractDefs(m.getInputType) ++ extractDefs(m.getOutputType)).toSet
 
     val fp = FunctionalPrinter()
@@ -70,7 +71,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .addIndented("- 'application/json'")
       .add("paths:")
       .indent
-      .print(methods) { case (p, m) => generateMethod(m)(p) }
+      .print(paths) { case (p, m) => generatePath(m)(p) }
       .outdent
       .add("definitions:")
       .indent
@@ -81,48 +82,59 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     b.build
   }
 
+  private def extractPath(m: MethodDescriptor): String = {
+    val http = m.getOptions.getExtension(AnnotationsProto.http)
+    http.getPatternCase match {
+      case PatternCase.GET => http.getGet
+      case PatternCase.POST => http.getPost
+      case PatternCase.PUT => http.getPut
+      case PatternCase.DELETE => http.getDelete
+      case PatternCase.PATCH => http.getPatch
+      case _ => ""
+    }
+  }
+
+  private def generatePath(pathMethods: (String, Seq[MethodDescriptor])): PrinterEndo = { printer =>
+    pathMethods match {
+      case (path, methods) =>
+        printer
+          .add(s"$path:")
+          .indent
+          .print(methods) { case (p, m) => generateMethod(m)(p) }
+          .outdent
+    }
+  }
+
   private def generateMethod(m: MethodDescriptor): PrinterEndo = { printer =>
     val http = m.getOptions.getExtension(AnnotationsProto.http)
     http.getPatternCase match {
       case PatternCase.GET =>
         printer
-          .add(s"${http.getGet}:")
-          .indent
           .add("get:")
           .indent
           .call(generateMethodInfo(m))
           .call(generateQueryParameters(m.getInputType))
           .outdent
-          .outdent
       case PatternCase.POST =>
         printer
-          .add(s"${http.getPost}:")
-          .indent
           .add("post:")
           .indent
           .call(generateMethodInfo(m))
           .call(generateBodyParameters(m.getInputType))
           .outdent
-          .outdent
       case PatternCase.PUT =>
         printer
-          .add(s"${http.getPut}:")
-          .indent
           .add("put:")
           .indent
           .call(generateMethodInfo(m))
           .call(generateBodyParameters(m.getInputType))
           .outdent
-          .outdent
       case PatternCase.DELETE =>
         printer
-          .add(s"${http.getDelete}:")
-          .indent
           .add("delete:")
           .indent
           .call(generateMethodInfo(m))
           .call(generateQueryParameters(m.getInputType))
-          .outdent
           .outdent
       case _ => printer
     }
