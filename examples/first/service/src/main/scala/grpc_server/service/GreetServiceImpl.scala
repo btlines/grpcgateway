@@ -1,6 +1,7 @@
 package grpc_server.service
 
-import hellogrpc.greet.GreetService.{ GreetRequest, GreetResponse, GreetServiceGrpc }
+
+import hellogrpc.greet.{GreetRequest, GreetResponse, GreetServiceGrpc}
 
 import scala.concurrent.Future
 

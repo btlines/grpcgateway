@@ -1,14 +1,30 @@
 
 syntax = "proto3";
 
-package grpcgateway;
+package hellogrpc;
 
-import "hellogrpc/calc/CalcService.proto";
+import "hellogrpc/CalcService.proto";
+import "hellogrpc/GreetService.proto";
+import "google/api/annotations.proto";
 
-service RestService {
+service CalcServiceRest {
 
-    rpc CalcSum (SumRequest) returns (CalcResponse) {
+    rpc CalcSum (hellogrpc.calc.SumRequest) returns (hellogrpc.calc.CalcResponse) {
+        option (google.api.http) = {
+          post: "/calcService/sum"
+          body: "*"
+        };
+    }
 
+}
+
+service GreetServiceRest {
+
+    rpc CalcSum (hellogrpc.greet.GreetRequest) returns (hellogrpc.greet.GreetResponse) {
+        option (google.api.http) = {
+          post: "/greetService/greet"
+          body: "*"
+        };
     }
 
 }

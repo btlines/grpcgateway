@@ -51,8 +51,7 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
               buildFullHttpResponse(
                 requestMsg = req,
                 responseBody = body,
-                responseStatus = status,
-                responseContentType = "application/text"
+                responseStatus = status
               )
             }).foreach(resp => {
               ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE)

@@ -3,7 +3,7 @@ package grpcgateway.generators
 import com.google.api.AnnotationsProto
 import com.google.api.HttpRule.PatternCase
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
-import com.google.protobuf.Descriptors.{Descriptor, FieldDescriptor, FileDescriptor, MethodDescriptor}
+import com.google.protobuf.Descriptors._
 import com.google.protobuf.ExtensionRegistry
 import com.google.protobuf.compiler.PluginProtos.{CodeGeneratorRequest, CodeGeneratorResponse}
 import com.trueaccord.scalapb.compiler.FunctionalPrinter.PrinterEndo
@@ -32,23 +32,21 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           acc + (fp.getName -> FileDescriptor.buildFrom(fp, deps.toArray))
       }
 
-    request.getFileToGenerateList.asScala
-      .map(fileDescByName)
-      .filter(_.getServices.asScala.nonEmpty)
-      .map(generateFile)
-      .foreach(b.addFile)
+    for {
+      fileDesc <- request.getFileToGenerateList.asScala.map(fileDescByName)
+      serviceDesc <- fileDesc.getServices.asScala
+    } b.addFile(generateFile(serviceDesc, fileDesc))
 
     b.build.toByteArray
   }
 
-  private def generateFile(fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
+  private def generateFile(serviceDesc: ServiceDescriptor, fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
     val b = CodeGeneratorResponse.File.newBuilder()
 
-    val objectName = fileDesc.fileDescriptorObjectName.substring(0, fileDesc.fileDescriptorObjectName.length - 5)
-    b.setName(s"${objectName}Service.yml")
+    b.setName(s"${serviceDesc.getName}.yml")
 
-    val methods = fileDesc.getServices.asScala
-      .flatMap(_.getMethods.asScala)
+    val methods = serviceDesc
+      .getMethods.asScala
       .filter { m =>
         // only unary calls with http method specified
         !m.isClientStreaming && !m.isServerStreaming && m.getOptions.hasExtension(AnnotationsProto.http)
@@ -60,7 +58,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .add("swagger: '2.0'", "info:")
       .addIndented(
         "version: not set",
-        s"title: '${fileDesc.fileDescriptorObjectName}'",
+        s"title: '${serviceDesc.getName}'",
         s"description: 'REST API generated from ${fileDesc.getFile.getName}'"
       )
       .add("schemes:")

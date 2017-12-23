@@ -1,9 +1,9 @@
 package grpc_server
 
-import grpc_server.service.{ GreetServiceImpl, SumServiceImpl }
-import hellogrpc.calc.CalcService.CalcServiceGrpc
-import hellogrpc.greet.GreetService.GreetServiceGrpc
-import io.grpc.{ Server, ServerBuilder }
+import grpc_server.service.{GreetServiceImpl, SumServiceImpl}
+import hellogrpc.calc.CalcServiceGrpc
+import hellogrpc.greet.GreetServiceGrpc
+import io.grpc.{Server, ServerBuilder}
 
 import scala.concurrent.ExecutionContext
 
