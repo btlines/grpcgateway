@@ -35,12 +35,12 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     for {
       fileDesc <- request.getFileToGenerateList.asScala.map(fileDescByName)
       serviceDesc <- fileDesc.getServices.asScala
-    } b.addFile(generateFile(serviceDesc, fileDesc))
+    } b.addFile(generateServiceFile(serviceDesc, fileDesc))
 
     b.build.toByteArray
   }
 
-  private def generateFile(serviceDescriptor: ServiceDescriptor, fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
+  private def generateServiceFile(serviceDescriptor: ServiceDescriptor, fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
     val b = CodeGeneratorResponse.File.newBuilder()
     val packageName: List[String] = fileDesc.scalaPackagePartsAsSymbols.toList
     b.setName(s"${packageName.mkString("/")}/${serviceDescriptor.getName}Handler.scala")
