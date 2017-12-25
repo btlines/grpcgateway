@@ -2,12 +2,6 @@ syntax = "proto3";
 
 package hellogrpc.calc;
 
-import "scalapb/scalapb.proto";
-
-option (scalapb.options) = {
-  flat_package: true
-};
-
 service CalcService {
 
     rpc CalcSum (SumRequest) returns (CalcResponse) {}

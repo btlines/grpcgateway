@@ -23,7 +23,6 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
 
     val b = CodeGeneratorResponse.newBuilder
     val request = CodeGeneratorRequest.parseFrom(requestBytes, registry)
-
     request.getParameter
 
     val fileDescByName: Map[String, FileDescriptor] =
@@ -43,9 +42,9 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
 
   private def generateFile(serviceDescriptor: ServiceDescriptor, fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
     val b = CodeGeneratorResponse.File.newBuilder()
-    val packageName: List[String] = fileDesc.scalaPackagePartsAsSymbols.toList.dropRight(1) ::: List("gateway")
+    val packageName: List[String] = fileDesc.scalaPackagePartsAsSymbols.toList
     b.setName(s"${packageName.mkString("/")}/${serviceDescriptor.getName}Handler.scala")
-    fileDesc.get
+    if (params.flatPackage) {}
     val fp = FunctionalPrinter()
       .add(s"package ${packageName.mkString(".")}")
       .newline
@@ -69,7 +68,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .add(
         "extends GrpcGatewayHandler(channel)(ec) {",
         s"""override val name: String = "${serviceDescriptor.getName}"""",
-        s"private val stub = ${serviceDescriptor.getFullName}Grpc.stub(channel)"
+        s"private val stub = ${serviceDescriptor.getFile.scalaPackageName}.${serviceDescriptor.objectName}.stub(channel)"
       )
       .newline
       .call(generateSupportsCall(serviceDescriptor))
@@ -158,7 +157,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add(s"""case ("POST", "${http.getPost}") => """)
           .add("for {")
           .addIndented(
-            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.getInputType.getFullName}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
+            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.scalaIn}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
             s"res <- stub.$methodName(msg)"
           )
           .add("} yield res")
@@ -167,7 +166,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add(s"""case ("PUT", "${http.getPut}") => """)
           .add("for {")
           .addIndented(
-            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.getInputType.getFullName}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
+            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.scalaIn}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
             s"res <- stub.$methodName(msg)"
           )
           .add("} yield res")

@@ -1,6 +1,7 @@
 package gateway
 
 import grpcgateway.server.GrpcGatewayServerBuilder
+import hellogrpc.gateway._
 
 import scala.concurrent.ExecutionContext
 
@@ -10,17 +11,6 @@ case class GatewayServer(
   gwPort: Int
 )(implicit ec: ExecutionContext) {
 
-  val channel =
-    io.grpc.ManagedChannelBuilder
-      .forAddress(channelAddress, channelPort)
-      .usePlaintext(true)
-      .build()
 
-  val gateway =
-    GrpcGatewayServerBuilder
-      .forPort(gwPort)
-      .addService(new CalcServiceRestHandler(channel))
-      .addService(new GreetServiceRestHandler(channel))
-      .build()
 
 }
