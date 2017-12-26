@@ -5,20 +5,21 @@ import com.google.api.HttpRule.PatternCase
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import com.google.protobuf.Descriptors._
 import com.google.protobuf.ExtensionRegistry
-import com.google.protobuf.compiler.PluginProtos.{CodeGeneratorRequest, CodeGeneratorResponse}
+import com.google.protobuf.compiler.PluginProtos.{ CodeGeneratorRequest, CodeGeneratorResponse }
 import com.trueaccord.scalapb.compiler.FunctionalPrinter.PrinterEndo
-import com.trueaccord.scalapb.compiler.{DescriptorPimps, FunctionalPrinter, GeneratorParams}
+import com.trueaccord.scalapb.compiler.{ DescriptorPimps, FunctionalPrinter, GeneratorParams, ProtobufGenerator }
+import protocbridge.Artifact
 
 import scala.collection.JavaConverters._
 import scalapbshade.v0_6_7.com.trueaccord.scalapb.Scalapb
 
 class GatewayGenerator(
- val params: GeneratorParams
+  val params: GeneratorParams
 ) extends DescriptorPimps {
 
-  private def generateServiceFile(serviceDescriptor: ServiceDescriptor, fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
+  def generateServiceFile(serviceDescriptor: ServiceDescriptor): CodeGeneratorResponse.File = {
     val b = CodeGeneratorResponse.File.newBuilder()
-    val packageName: List[String] = fileDesc.scalaPackagePartsAsSymbols.toList
+    val packageName: List[String] = serviceDescriptor.getFile.scalaPackagePartsAsSymbols.toList
     b.setName(s"${packageName.mkString("/")}/${serviceDescriptor.getName}Handler.scala")
     if (params.flatPackage) {}
     val fp = FunctionalPrinter()
@@ -58,14 +59,14 @@ class GatewayGenerator(
     b.build
   }
 
-  private def getUnaryCallsWithHttpExtension(service: ServiceDescriptor) = {
+  def getUnaryCallsWithHttpExtension(service: ServiceDescriptor): List[MethodDescriptor] = {
     service.getMethods.asScala.filter { m =>
       // only unary calls with http method specified
       !m.isClientStreaming && !m.isServerStreaming && m.getOptions.hasExtension(AnnotationsProto.http)
-    }
+    }.toList
   }
 
-  private def generateUnaryCall(service: ServiceDescriptor): PrinterEndo = { printer =>
+  def generateUnaryCall(service: ServiceDescriptor): PrinterEndo = { printer =>
     val methods = getUnaryCallsWithHttpExtension(service)
     printer
       .add(s"override def unaryCall(method: HttpMethod, uri: String, body: String): Future[GeneratedMessage] = {")
@@ -84,7 +85,7 @@ class GatewayGenerator(
       .add("}")
   }
 
-  private def generateSupportsCall(service: ServiceDescriptor): PrinterEndo = { printer =>
+  def generateSupportsCall(service: ServiceDescriptor): PrinterEndo = { printer =>
     val methods = getUnaryCallsWithHttpExtension(service)
     printer
       .add(s"override def supportsCall(method: HttpMethod, uri: String): Boolean = {")
@@ -102,7 +103,7 @@ class GatewayGenerator(
       .add("}")
   }
 
-  private def generateMethodCase(method: MethodDescriptor): PrinterEndo = { printer =>
+  def generateMethodCase(method: MethodDescriptor): PrinterEndo = { printer =>
     val http = method.getOptions.getExtension(AnnotationsProto.http)
     http.getPatternCase match {
       case PatternCase.GET    => printer.add(s"""case ("GET", "${http.getGet}") => true""")
@@ -113,7 +114,7 @@ class GatewayGenerator(
     }
   }
 
-  private def generateMethodHandlerCase(method: MethodDescriptor): PrinterEndo = { printer =>
+  def generateMethodHandlerCase(method: MethodDescriptor): PrinterEndo = { printer =>
     val http       = method.getOptions.getExtension(AnnotationsProto.http)
     val methodName = method.getName.charAt(0).toLower + method.getName.substring(1)
     http.getPatternCase match {
@@ -161,7 +162,7 @@ class GatewayGenerator(
     }
   }
 
-  private def generateInputFromQueryString(d: Descriptor, prefix: String = ""): PrinterEndo = { printer =>
+  def generateInputFromQueryString(d: Descriptor, prefix: String = ""): PrinterEndo = { printer =>
     val args = d.getFields.asScala.map(f => s"${f.getJsonName} = ${inputName(f, prefix)}").mkString(", ")
 
     printer
@@ -215,9 +216,49 @@ class GatewayGenerator(
       .add(s"${d.getName}($args)")
   }
 
-  private def inputName(d: FieldDescriptor, prefix: String = ""): String = {
+  def inputName(d: FieldDescriptor, prefix: String = ""): String = {
     val name = prefix.split(".").filter(_.nonEmpty).map(s => s.charAt(0).toUpper + s.substring(1)).mkString + d.getName
     name.charAt(0).toLower + name.substring(1)
   }
+
+}
+
+object GatewayGenerator extends protocbridge.ProtocCodeGenerator {
+
+  override def run(requestBytes: Array[Byte]): Array[Byte] = {
+    val registry = ExtensionRegistry.newInstance()
+    Scalapb.registerAllExtensions(registry)
+    AnnotationsProto.registerAllExtensions(registry)
+
+    val b = CodeGeneratorResponse.newBuilder
+    val request = CodeGeneratorRequest.parseFrom(requestBytes, registry)
+
+    ProtobufGenerator.parseParameters(request.getParameter).fold(
+      err => b.setError(err),
+      params => {
+        val generator = new GatewayGenerator(params)
+
+        val fileDescByName: Map[String, FileDescriptor] =
+          request.getProtoFileList.asScala.foldLeft[Map[String, FileDescriptor]](Map.empty) {
+            case (acc, fp) =>
+              val deps = fp.getDependencyList.asScala.map(acc)
+              acc + (fp.getName -> FileDescriptor.buildFrom(fp, deps.toArray))
+          }
+
+        for {
+          fileDesc <- request.getFileToGenerateList.asScala.map(fileDescByName)
+          serviceDesc <- fileDesc.getServices.asScala
+        } b.addFile(generator.generateServiceFile(serviceDesc))
+
+      }
+    )
+
+    b.build.toByteArray
+  }
+
+  override def suggestedDependencies: Seq[Artifact] = Seq(
+    Artifact("beyondthelines", "grpcgatewayruntime",
+      grpcgateway.generators.BuildInfo.version, crossVersion = true)
+  )
 
 }

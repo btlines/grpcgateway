@@ -5,42 +5,19 @@ import com.google.api.HttpRule.PatternCase
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import com.google.protobuf.Descriptors._
 import com.google.protobuf.ExtensionRegistry
-import com.google.protobuf.compiler.PluginProtos.{CodeGeneratorRequest, CodeGeneratorResponse}
+import com.google.protobuf.compiler.PluginProtos.{ CodeGeneratorRequest, CodeGeneratorResponse }
 import com.trueaccord.scalapb.compiler.FunctionalPrinter.PrinterEndo
-import com.trueaccord.scalapb.compiler.{DescriptorPimps, FunctionalPrinter}
+import com.trueaccord.scalapb.compiler.{ DescriptorPimps, FunctionalPrinter, GeneratorParams, ProtobufGenerator }
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scalapbshade.v0_6_7.com.trueaccord.scalapb.Scalapb
 
-object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with DescriptorPimps {
+class SwaggerGenerator(
+  val params: GeneratorParams
+) extends DescriptorPimps {
 
-  override val params = com.trueaccord.scalapb.compiler.GeneratorParams()
-
-  override def run(requestBytes: Array[Byte]): Array[Byte] = {
-    val registry = ExtensionRegistry.newInstance()
-    Scalapb.registerAllExtensions(registry)
-    AnnotationsProto.registerAllExtensions(registry)
-
-    val b = CodeGeneratorResponse.newBuilder
-    val request = CodeGeneratorRequest.parseFrom(requestBytes, registry)
-
-    val fileDescByName: Map[String, FileDescriptor] =
-      request.getProtoFileList.asScala.foldLeft[Map[String, FileDescriptor]](Map.empty) {
-        case (acc, fp) =>
-          val deps = fp.getDependencyList.asScala.map(acc)
-          acc + (fp.getName -> FileDescriptor.buildFrom(fp, deps.toArray))
-      }
-
-    for {
-      fileDesc <- request.getFileToGenerateList.asScala.map(fileDescByName)
-      serviceDesc <- fileDesc.getServices.asScala
-    } b.addFile(generateFile(serviceDesc, fileDesc))
-
-    b.build.toByteArray
-  }
-
-  private def generateFile(serviceDesc: ServiceDescriptor, fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
+  def generateFile(serviceDesc: ServiceDescriptor): CodeGeneratorResponse.File = {
     val b = CodeGeneratorResponse.File.newBuilder()
 
     b.setName(s"${serviceDesc.getName}.yml")
@@ -59,7 +36,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .addIndented(
         "version: not set",
         s"title: '${serviceDesc.getName}'",
-        s"description: 'REST API generated from ${fileDesc.getFile.getName}'"
+        s"description: 'REST API generated from ${serviceDesc.getFile.getName}'"
       )
       .add("schemes:")
       .addIndented("- http", "- https")
@@ -80,7 +57,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     b.build
   }
 
-  private def extractPath(m: MethodDescriptor): String = {
+  def extractPath(m: MethodDescriptor): String = {
     val http = m.getOptions.getExtension(AnnotationsProto.http)
     http.getPatternCase match {
       case PatternCase.GET => http.getGet
@@ -92,7 +69,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     }
   }
 
-  private def generatePath(pathMethods: (String, Seq[MethodDescriptor])): PrinterEndo = { printer =>
+  def generatePath(pathMethods: (String, Seq[MethodDescriptor])): PrinterEndo = { printer =>
     pathMethods match {
       case (path, methods) =>
         printer
@@ -103,7 +80,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     }
   }
 
-  private def generateMethod(m: MethodDescriptor): PrinterEndo = { printer =>
+  def generateMethod(m: MethodDescriptor): PrinterEndo = { printer =>
     val http = m.getOptions.getExtension(AnnotationsProto.http)
     http.getPatternCase match {
       case PatternCase.GET =>
@@ -138,7 +115,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     }
   }
 
-  private def generateMethodInfo(m: MethodDescriptor): PrinterEndo =
+  def generateMethodInfo(m: MethodDescriptor): PrinterEndo =
     _.add("tags:")
       .addIndented(s"- ${m.getService.getName}")
       .add("summary:")
@@ -157,7 +134,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .outdent
       .outdent
 
-  private def generateBodyParameters(inputType: Descriptor): PrinterEndo =
+  def generateBodyParameters(inputType: Descriptor): PrinterEndo =
     _.add("parameters:").indent
       .add("- in: 'body'")
       .indent
@@ -167,7 +144,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .outdent
       .outdent
 
-  private def generateQueryParameters(inputType: Descriptor, prefix: String = ""): PrinterEndo =
+  def generateQueryParameters(inputType: Descriptor, prefix: String = ""): PrinterEndo =
     _.when(inputType.getFields.asScala.nonEmpty)(
       _.add("parameters:")
         .print(inputType.getFields.asScala) {
@@ -175,7 +152,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
             p.call(generateQueryParameter(f))
         })
 
-  private def generateQueryParameter(field: FieldDescriptor, prefix: String = ""): PrinterEndo = { printer =>
+  def generateQueryParameter(field: FieldDescriptor, prefix: String = ""): PrinterEndo = { printer =>
     field.getJavaType match {
       case JavaType.MESSAGE =>
         printer.call(
@@ -201,7 +178,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     }
   }
 
-  private def generateDefinition(d: Descriptor): PrinterEndo = {
+  def generateDefinition(d: Descriptor): PrinterEndo = {
     _.add(d.getName + ":").indent
       .add("type: object")
       .when(d.getFields.asScala.nonEmpty)(_.add("properties: ").indent
@@ -228,7 +205,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .outdent
   }
 
-  private def generateDefinitionType(field: FieldDescriptor): PrinterEndo = {
+  def generateDefinitionType(field: FieldDescriptor): PrinterEndo = {
     field.getJavaType match {
       case JavaType.MESSAGE => _.add(s"""$$ref: "#/definitions/${field.getMessageType.getName}"""")
       case JavaType.ENUM =>
@@ -241,7 +218,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     }
   }
 
-  private def extractDefs(d: Descriptor): Set[Descriptor] = {
+  def extractDefs(d: Descriptor): Set[Descriptor] = {
     val explored: mutable.Set[Descriptor] = mutable.Set.empty
     def extractDefsRec(d: Descriptor): Set[Descriptor] = {
       if (explored.contains(d)) Set()
@@ -257,4 +234,40 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     }
     extractDefsRec(d)
   }
+
+}
+
+object SwaggerGenerator extends protocbridge.ProtocCodeGenerator {
+
+  override def run(requestBytes: Array[Byte]): Array[Byte] = {
+    val registry = ExtensionRegistry.newInstance()
+    Scalapb.registerAllExtensions(registry)
+    AnnotationsProto.registerAllExtensions(registry)
+
+    val b = CodeGeneratorResponse.newBuilder
+    val request = CodeGeneratorRequest.parseFrom(requestBytes, registry)
+
+    ProtobufGenerator.parseParameters(request.getParameter).fold(
+      err => b.setError(err),
+      params => {
+
+        val generator = new SwaggerGenerator(params)
+
+        val fileDescByName: Map[String, FileDescriptor] =
+          request.getProtoFileList.asScala.foldLeft[Map[String, FileDescriptor]](Map.empty) {
+            case (acc, fp) =>
+              val deps = fp.getDependencyList.asScala.map(acc)
+              acc + (fp.getName -> FileDescriptor.buildFrom(fp, deps.toArray))
+          }
+
+        for {
+          fileDesc <- request.getFileToGenerateList.asScala.map(fileDescByName)
+          serviceDesc <- fileDesc.getServices.asScala
+        } b.addFile(generator.generateFile(serviceDesc))
+      }
+    )
+
+    b.build.toByteArray
+  }
+
 }

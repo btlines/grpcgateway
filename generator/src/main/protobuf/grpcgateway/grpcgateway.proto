@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+package grpcgateway;
+
+message MethodOptions {
+
+    optional string  = 1;
+
+}
