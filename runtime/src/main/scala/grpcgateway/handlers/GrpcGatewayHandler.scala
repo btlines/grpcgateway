@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets
 
 import com.trueaccord.scalapb.GeneratedMessage
 import com.trueaccord.scalapb.json.JsonFormat
-import io.grpc.ManagedChannel
+import io.grpc.{ ManagedChannel, StatusException, StatusRuntimeException }
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.{ ChannelFutureListener, ChannelHandlerContext, ChannelInboundHandlerAdapter }
 import io.netty.handler.codec.http._
@@ -44,7 +44,9 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
             .recover({ case err =>
 
               val (body, status) = err match {
-                case e: GatewayException => e.details -> GRPC_HTTP_CODE_MAP.getOrElse(e.code, HttpResponseStatus.INTERNAL_SERVER_ERROR)
+                case e: StatusRuntimeException => e.getMessage -> toHttpCode(e.getStatus.getCode.value())
+                case e: StatusException => e.getMessage -> toHttpCode(e.getStatus.getCode.value())
+                case e: GatewayException => e.details -> toHttpCode(e.code)
                 case _ => "Internal error" -> HttpResponseStatus.INTERNAL_SERVER_ERROR
               }
 
@@ -63,5 +65,9 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
         }
       case _ => super.channelRead(ctx, msg)
     }
+  }
+
+  private def toHttpCode(code: Int) = {
+    GRPC_HTTP_CODE_MAP.getOrElse(code, HttpResponseStatus.INTERNAL_SERVER_ERROR)
   }
 }
