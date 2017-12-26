@@ -16,6 +16,7 @@ object GrpcGatewayPlugin extends AutoPlugin {
       grpcgateway.generators.SwaggerGenerator -> (resourceManaged in Compile).value / "specs",
       grpcgateway.generators.GatewayGenerator -> (sourceManaged in Compile).value
     ),
+    unmanagedResourceDirectories in Compile += resourceManaged.value / "main" / "specs",
     libraryDependencies ++= Seq(
       "beyondthelines" %% "grpcgatewayruntime" % grpcgateway.generators.BuildInfo.version
     ),

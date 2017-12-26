@@ -2,7 +2,7 @@ package gateway
 
 import com.softwaremill.sttp._
 import org.json4s.JValue
-import org.json4s.JsonAST.{JInt, JObject}
+import org.json4s.JsonAST.{JInt, JObject, JString}
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods
 import org.scalatest.{EitherValues, FreeSpec, Matchers}
@@ -32,9 +32,23 @@ class ConnectionTest extends FreeSpec with EitherValues with Matchers {
 
       val resp = doPost(uri"http://localhost:9097/calcService/sum", req)
 
-      resp shouldBe Right
+      resp shouldBe 'right
 
       resp.right.value shouldBe (200 -> JsonMethods.compact(JObject("result" -> JInt(23))))
+
+    }
+
+    "test greet" in {
+
+      val req = JObject(
+        "name" -> JString("Alex")
+      )
+
+      val resp = doPost(uri"http://localhost:9097/greetService/greet", req)
+
+      resp shouldBe 'right
+
+      resp.right.value shouldBe (200 -> JsonMethods.compact(JObject("greeting" -> JString("Hello Alex"))))
 
     }
 

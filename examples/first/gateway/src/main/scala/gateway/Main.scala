@@ -1,7 +1,8 @@
 package gateway
 
 import grpcgateway.server.GrpcGatewayServerBuilder
-import hellogrpc.gateway.{ CalcServiceRestHandler, GreetServiceRestHandler }
+import hellogrpc.calc.CalcServiceHandler
+import hellogrpc.greet.GreetServiceHandler
 
 import scala.concurrent.ExecutionContext
 
@@ -18,8 +19,8 @@ object Main extends App {
   val gateway =
     GrpcGatewayServerBuilder
       .forPort(9097)
-      .addService(new CalcServiceRestHandler(channel))
-      .addService(new GreetServiceRestHandler(channel))
+      .addService(new CalcServiceHandler(channel))
+      .addService(new GreetServiceHandler(channel))
       .build()
 
   gateway.start()

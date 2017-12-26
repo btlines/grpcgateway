@@ -49,10 +49,19 @@ lazy val gateway = (project in file("gateway"))
   .settings(
     fork in Test := true,
     PB.includePaths in Compile += (target in protos).value / "protobuf_external",
+    PB.targets in Compile := Seq(
+      grpcgateway.generators.SwaggerGenerator -> (resourceManaged in Compile).value / "specs",
+      grpcgateway.generators.GatewayGenerator -> (sourceManaged in Compile).value
+    ),
+    unmanagedResourceDirectories in Compile += resourceManaged.value / "main" / "specs",
     libraryDependencies ++= Seq(
+      "beyondthelines" % "first_example_interface" % "0.0.1-SNAPSHOT" % "protobuf",
       "org.scalatest" %% "scalatest" % "3.0.4" % Test,
       "com.softwaremill.sttp" %% "core" % "1.1.2" % Test,
       "org.json4s" %% "json4s-jackson" % "3.5.3" % Test
     ),
-    Revolver.enableDebugging(5015, suspend = true)
+    Revolver.enableDebugging(5015, suspend = true),
+    PB.protoSources in Compile := Seq(
+      target.value / "protobuf_external" / "hellogrpc"
+    )
   ).dependsOn(protos)

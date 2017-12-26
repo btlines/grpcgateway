@@ -35,15 +35,7 @@ class SwaggerHandler(services: Seq[GrpcGatewayHandler]) extends ChannelInboundHa
           Some(createResourceResponse(req, resourcePath))
         case p if p.startsWith(SpecsPrefix) =>
           // swagger UI loading up spec file
-          val serviceName = p.toString.toLowerCase()
-          services.find(handler => serviceName.contains(handler.name.toLowerCase())) match {
-            case Some(handler) => Some(createResourceResponse(req, RootPath.relativize(path), handler.getClass.getClassLoader))
-            case None => buildFullHttpResponse(
-              requestMsg = req,
-              responseBody = "Unknown service",
-              responseStatus = HttpResponseStatus.BAD_REQUEST,
-            )
-          }
+          Some(createResourceResponse(req, RootPath.relativize(path)))
         case _ => None
       }
       res match {
@@ -66,8 +58,8 @@ class SwaggerHandler(services: Seq[GrpcGatewayHandler]) extends ChannelInboundHa
     res
   }
 
-  private def createResourceResponse(req: FullHttpRequest, path: Path, classLoader: ClassLoader = Thread.currentThread().getContextClassLoader) = {
-    val resource = classLoader.getResourceAsStream(separatorsToUnix(path.toString))
+  private def createResourceResponse(req: FullHttpRequest, path: Path) = {
+    val resource = Thread.currentThread().getContextClassLoader.getResourceAsStream(separatorsToUnix(path.toString))
     val res = resource match {
       case null => new DefaultFullHttpResponse(req.protocolVersion(), HttpResponseStatus.NOT_FOUND)
       case some =>
