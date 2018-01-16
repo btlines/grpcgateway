@@ -1,4 +1,4 @@
-scalaVersion in ThisBuild := "2.12.2"
+scalaVersion in ThisBuild := "2.12.4"
 
 organization in ThisBuild := "beyondthelines"
 

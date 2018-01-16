@@ -21,7 +21,6 @@ class GatewayGenerator(
     val b = CodeGeneratorResponse.File.newBuilder()
     val packageName: List[String] = serviceDescriptor.getFile.scalaPackagePartsAsSymbols.toList
     b.setName(s"${packageName.mkString("/")}/${serviceDescriptor.getName}Handler.scala")
-    if (params.flatPackage) {}
     val fp = FunctionalPrinter()
       .add(s"package ${packageName.mkString(".")}")
       .newline
