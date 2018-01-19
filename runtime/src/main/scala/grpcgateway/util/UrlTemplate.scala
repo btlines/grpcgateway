@@ -49,6 +49,9 @@ private final class MatchingUrlTemplate(matchers: Seq[PathMatcher]) extends UrlT
 
       val matcher = matchers(matcherIndex)
       pathIndex = matcher.matchString(path, pathIndex, templateParams)
+      if (pathIndex == PathMatcher.NO_MATCH) {
+        return None
+      }
 
       //println(s"Matched \'${path.substring(from, pathIndex)}\' with ${matcher.toString} remains [${path.substring(pathIndex)}]")
 

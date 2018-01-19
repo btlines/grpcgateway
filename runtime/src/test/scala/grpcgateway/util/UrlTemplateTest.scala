@@ -1,8 +1,8 @@
 package grpcgateway.util
 
-import org.scalatest.{Assertions, FlatSpec}
+import org.scalatest.{Assertions, FlatSpec, Matchers}
 
-class UrlTemplateTest extends FlatSpec with Assertions {
+class UrlTemplateTest extends FlatSpec with Matchers with Assertions {
   private val KEY = "k"
   private val VALUE = "v"
   private val PARAM1 = "T123"
@@ -56,6 +56,32 @@ class UrlTemplateTest extends FlatSpec with Assertions {
       s"/tree/trunk/branch/leaf/get/$PARAM1/$PARAM2/?$KEY=$VALUE")
   }
 
+  it should "no match is found in mismatched URI" in {
+    assertNoMatch(
+      UrlTemplate("/tree/trunk/branch/leaf/get/{template}/padding/{param}/"),
+      s"/tree/trunk/branch/leaf/get/$PARAM1/padding")
+
+    assertNoMatch(
+      UrlTemplate("/tree/trunk/branch/leaf/get/{template}"),
+      s"/tree/trunk/branch/leaf/get")
+
+    assertNoMatch(
+      UrlTemplate("/tree/trunk/branch/leaf/get/padding"),
+      s"/tree/trunk/branch/leaf/get")
+  }
+
+  an [IllegalArgumentException] should be thrownBy {
+    assertNoMatch(
+      UrlTemplate("/tree/trunk/branch/leaf/get/{template/padding/{param}/"),
+      s"IGNORED")
+  }
+
+  an [IllegalArgumentException] should be thrownBy {
+    assertNoMatch(
+      UrlTemplate("/tree/trunk/branch/leaf/get/template}/padding/{param}/"),
+      s"IGNORED")
+  }
+
   private def assertTwoParams(template: UrlTemplate, uri: String): Unit = {
     val restful = template.matchUri(uri).get
     assert(restful.parameter("template") == PARAM1)
@@ -69,5 +95,9 @@ class UrlTemplateTest extends FlatSpec with Assertions {
     assert(restful.parameter("param") == PARAM2)
     assert(restful.parameter(KEY) == VALUE)
     assert(restful.parameter("") == null)
+  }
+
+  private def assertNoMatch(template: UrlTemplate, uri: String): Unit = {
+    assert(template.matchUri(uri).isEmpty)
   }
 }

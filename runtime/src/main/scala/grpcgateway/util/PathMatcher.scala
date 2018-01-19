@@ -18,10 +18,10 @@ private[util] final class TextMatcher(prefix: String) extends PathMatcher {
   override def matchString(str: String, from: Int, templateParams: mutable.Map[String, String]): Int = {
     val to = from + prefix.length
 
-    if (str.substring(from, to) == prefix) {
+    if ((to <= str.length) && (str.substring(from, to) == prefix)) {
       to
     } else {
-      throw new IllegalArgumentException(s"Prefix $prefix not found at $from in $str")
+      PathMatcher.NO_MATCH
     }
   }
 
@@ -45,3 +45,7 @@ private[util] final class TemplateMatcher(name: String) extends PathMatcher {
   override def toString: String = s"[$name]"
 }
 
+object PathMatcher {
+  /** The "string position" value to return if a string does not match this matcher */
+  val NO_MATCH: Int = -1
+}

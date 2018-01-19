@@ -22,6 +22,9 @@ private final class PathParser(path: String) {
 
     val from = index
     while ((index < path.length) && (path(index) != RCURLY)) {
+      if (path(index) == LCURLY) {
+        throw new IllegalArgumentException(s"Detected curly braces mismatch at ${from-1} and $index in $path")
+      }
       index += 1
     }
     val name = path.substring(from, index)
@@ -38,6 +41,10 @@ private final class PathParser(path: String) {
   private def matchStaticText(): TextMatcher = {
     val from = index
     while ((index < path.length) && (path(index) != LCURLY)) {
+      if (path(index) == RCURLY) {
+        throw new IllegalArgumentException(s"Detected curly braces mismatch at ${from} and $index in $path")
+      }
+
       index += 1
     }
 
