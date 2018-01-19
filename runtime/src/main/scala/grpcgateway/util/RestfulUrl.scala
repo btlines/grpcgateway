@@ -9,7 +9,9 @@ import scala.collection.mutable
 
 /** A container of extracted URI properties */
 trait RestfulUrl {
-  /** @return named URL parameter extracted from a query uri with a UrlTemplate */
+  /**
+    * A uniform way to access URL parameters extracted from named slots (e.g. "/{slot}/") and ordinary parameters (e.g. "?k=v")
+    * @return named URL parameter extracted from a query uri with a UrlTemplate */
   def parameter(name: String): String
 }
 
@@ -30,6 +32,9 @@ private final class MergedRestfulUrl(templateParams: TemplateParams, pathParams:
 }
 
 private object RestfulUrl {
+  /** parameters extracted from named slots such as "/{slot}/" */
   type PathParams = util.Map[String, util.List[String]]
+
+  /** ordinary parameters such as "?k=v" */
   type TemplateParams = mutable.Map[String, String]
 }

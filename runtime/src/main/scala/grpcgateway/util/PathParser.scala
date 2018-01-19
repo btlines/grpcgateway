@@ -2,7 +2,7 @@ package grpcgateway.util
 
 import scala.collection.mutable.ArrayBuffer
 
-private[util] final class PathParser(path: String) {
+private final class PathParser(path: String) {
   import PathParser.{LCURLY, RCURLY}
 
   private val matchers = ArrayBuffer[PathMatcher]()
@@ -16,6 +16,7 @@ private[util] final class PathParser(path: String) {
     }
   }
 
+  /** Assume the index points to a named slot. Remember the extracted slot name. */
   private def matchTemplate(): TemplateMatcher = {
     matchChar(LCURLY)
 
@@ -30,7 +31,11 @@ private[util] final class PathParser(path: String) {
     new TemplateMatcher(name)
   }
 
-  private def matchPrefix(): TextMatcher = {
+  /**
+    * Assume the index points to somewhere in-between named slots.
+    * Collect  everything up to the next named slot (or the end of the input)
+    */
+  private def matchStaticText(): TextMatcher = {
     val from = index
     while ((index < path.length) && (path(index) != LCURLY)) {
       index += 1
@@ -39,7 +44,7 @@ private[util] final class PathParser(path: String) {
     new TextMatcher(path.substring(from, index))
   }
 
-  def parse() : Seq[PathMatcher] = {
+  private def parse() : Seq[PathMatcher] = {
     while (index < path.length) {
       path(index) match {
         case LCURLY =>
@@ -47,7 +52,7 @@ private[util] final class PathParser(path: String) {
           matchers += matcher
 
         case _ =>
-          val matcher = matchPrefix()
+          val matcher = matchStaticText()
           matchers += matcher
       }
     }
@@ -62,5 +67,9 @@ private[util] object PathParser {
   private val LCURLY = '{'
   private val RCURLY = '}'
 
+  /** @return true if the path contains at least one parameter template such as "/{slot}" */
   def hasTemplates(path: String) : Boolean = path.contains(PathParser.LCURLY)
+
+  /** Sequentially scan a URL template string. Split it into segments representing names slots and everything else. */
+  def apply(path: String) : Seq[PathMatcher] = new PathParser(path).parse()
 }

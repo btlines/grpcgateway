@@ -3,12 +3,21 @@ package grpcgateway.util
 import scala.collection.mutable
 
 private[util] trait PathMatcher {
+  /**
+    * Assume a sequence of matchers was created by sequentially scanning a URL pattern such as "/get/{template}".
+    * One by one apply all matchers in the original order
+    * @param str URL path string
+    * @param from position in the path to start matching from
+    * @param templateParams (name,value) pairs of URL parameters extracted from named slots
+    * @return the position in string the next matcher should continue from
+    */
   def matchString(str: String, from: Int, templateParams: mutable.Map[String, String]) : Int
 }
 
 private[util] final class TextMatcher(prefix: String) extends PathMatcher {
-  override def matchString(str: String, from: Int, map: mutable.Map[String, String]): Int = {
+  override def matchString(str: String, from: Int, templateParams: mutable.Map[String, String]): Int = {
     val to = from + prefix.length
+
     if (str.substring(from, to) == prefix) {
       to
     } else {
@@ -20,13 +29,15 @@ private[util] final class TextMatcher(prefix: String) extends PathMatcher {
 }
 
 private[util] final class TemplateMatcher(name: String) extends PathMatcher {
-  override def matchString(str: String, from: Int, map: mutable.Map[String, String]): Int = {
+  private val PATH_DELIMITER = '/'
+
+  override def matchString(str: String, from: Int, templateParams: mutable.Map[String, String]): Int = {
     var index = from
-    while ((index < str.length) && (str(index) != '/')) {
+    while ((index < str.length) && (str(index) != PATH_DELIMITER)) {
       index += 1
     }
 
-    map.put(name, str.substring(from, index))
+    templateParams.put(name, str.substring(from, index))
 
     index
   }
