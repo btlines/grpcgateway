@@ -6,16 +6,16 @@ import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import com.google.protobuf.Descriptors.{Descriptor, FieldDescriptor, FileDescriptor, MethodDescriptor}
 import com.google.protobuf.ExtensionRegistry
 import com.google.protobuf.compiler.PluginProtos.{CodeGeneratorRequest, CodeGeneratorResponse}
-import com.trueaccord.scalapb.compiler.FunctionalPrinter.PrinterEndo
-import com.trueaccord.scalapb.compiler.{DescriptorPimps, FunctionalPrinter}
+import scalapb.compiler.FunctionalPrinter.PrinterEndo
+import scalapb.compiler.{DescriptorPimps, FunctionalPrinter}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scalapbshade.v0_6_7.com.trueaccord.scalapb.Scalapb
+import scalapb.options.compiler.Scalapb
 
 object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with DescriptorPimps {
 
-  override val params = com.trueaccord.scalapb.compiler.GeneratorParams()
+  override val params = scalapb.compiler.GeneratorParams()
 
   override def run(requestBytes: Array[Byte]): Array[Byte] = {
     val registry = ExtensionRegistry.newInstance()

@@ -1,4 +1,4 @@
-import com.trueaccord.scalapb.compiler.Version.{grpcJavaVersion, scalapbVersion}
+import scalapb.compiler.Version.{grpcJavaVersion, scalapbVersion}
 
 organization in ThisBuild := "beyondthelines"
 version in ThisBuild := "0.0.8"
@@ -12,9 +12,9 @@ lazy val runtime = (project in file("runtime"))
     crossScalaVersions := Seq("2.12.4", "2.11.11"),
     name := "GrpcGatewayRuntime",
     libraryDependencies ++= Seq(
-      "com.trueaccord.scalapb" %% "compilerplugin"          % scalapbVersion,
-      "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % scalapbVersion,
-      "com.trueaccord.scalapb" %% "scalapb-json4s"          % "0.3.3",
+      "com.thesamet.scalapb"   %% "compilerplugin"          % scalapbVersion,
+      "com.thesamet.scalapb"   %% "scalapb-runtime-grpc"    % scalapbVersion,
+      "com.thesamet.scalapb"   %% "scalapb-json4s"          % "0.7.0",
       "io.grpc"                %  "grpc-netty"              % grpcJavaVersion,
       "org.webjars"            %  "swagger-ui"              % "3.5.0",
       "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf"
@@ -35,8 +35,8 @@ lazy val generator = (project in file("generator"))
     crossScalaVersions := Seq("2.12.4", "2.10.6"),
     name := "GrpcGatewayGenerator",
     libraryDependencies ++= Seq(
-      "com.trueaccord.scalapb" %% "compilerplugin"          % scalapbVersion,
-      "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % scalapbVersion,
+      "com.thesamet.scalapb"   %% "compilerplugin"          % scalapbVersion,
+      "com.thesamet.scalapb"   %% "scalapb-runtime-grpc"    % scalapbVersion,
       "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf"
     ),
     PB.protoSources in Compile += target.value / "protobuf_external",
