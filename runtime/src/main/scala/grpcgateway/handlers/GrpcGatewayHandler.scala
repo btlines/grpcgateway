@@ -2,8 +2,8 @@ package grpcgateway.handlers
 
 import java.nio.charset.StandardCharsets
 
-import com.trueaccord.scalapb.GeneratedMessage
-import com.trueaccord.scalapb.json.JsonFormat
+import scalapb.GeneratedMessage
+import scalapb.json4s.JsonFormat
 import io.grpc.ManagedChannel
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.{ ChannelFutureListener, ChannelHandlerContext, ChannelInboundHandlerAdapter }

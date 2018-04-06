@@ -2,7 +2,7 @@ package grpcgateway
 
 import java.nio.charset.StandardCharsets
 
-import com.trueaccord.scalapb.json.JsonFormatException
+import scalapb.json4s.JsonFormatException
 import io.grpc.Status.Code
 import io.netty.buffer.Unpooled
 import io.netty.handler.codec.http._

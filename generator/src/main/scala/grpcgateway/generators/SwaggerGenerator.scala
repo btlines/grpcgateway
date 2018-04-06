@@ -5,13 +5,13 @@ import com.google.api.HttpRule.PatternCase
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import com.google.protobuf.Descriptors._
 import com.google.protobuf.ExtensionRegistry
-import com.google.protobuf.compiler.PluginProtos.{ CodeGeneratorRequest, CodeGeneratorResponse }
-import com.trueaccord.scalapb.compiler.FunctionalPrinter.PrinterEndo
-import com.trueaccord.scalapb.compiler.{ DescriptorPimps, FunctionalPrinter, GeneratorParams, ProtobufGenerator }
+import com.google.protobuf.compiler.PluginProtos.{CodeGeneratorRequest, CodeGeneratorResponse}
+import scalapb.compiler.FunctionalPrinter.PrinterEndo
+import scalapb.compiler.{DescriptorPimps, FunctionalPrinter}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scalapbshade.v0_6_7.com.trueaccord.scalapb.Scalapb
+import scalapb.options.compiler.Scalapb
 
 class SwaggerGenerator(
   val params: GeneratorParams
