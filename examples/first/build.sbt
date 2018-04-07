@@ -1,4 +1,6 @@
-scalaVersion in ThisBuild := "2.12.5"
+import scalapb.compiler.Version.{grpcJavaVersion, scalapbVersion}
+
+scalaVersion in ThisBuild := "2.12.4"
 
 organization in ThisBuild := "beyondthelines"
 
@@ -11,8 +13,8 @@ lazy val protos = (project in file("protos"))
   .settings(
     PB.targets in Compile += (scalapb.gen() -> (sourceManaged in Compile).value),
     libraryDependencies ++= Seq(
-      "com.trueaccord.scalapb" %% "scalapb-runtime" % com.trueaccord.scalapb.compiler.Version.scalapbVersion % "protobuf",
-      "com.trueaccord.scalapb" %% "scalapb-runtime-grpc" % com.trueaccord.scalapb.compiler.Version.scalapbVersion,
+      "com.thesamet.scalapb" %% "scalapb-runtime" % scalapbVersion % "protobuf",
+      "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapbVersion,
       "com.google.api.grpc" % "googleapis-common-protos" % "0.0.3" % "protobuf",
       "beyondthelines" % "first_example_interface" % "0.0.1-SNAPSHOT" % "protobuf"
     ),
@@ -39,7 +41,7 @@ lazy val interface = (project in file("interface"))
 lazy val service = (project in file("service"))
   .settings(
     libraryDependencies ++= Seq(
-      "io.grpc" % "grpc-netty" % com.trueaccord.scalapb.compiler.Version.grpcJavaVersion
+      "io.grpc" % "grpc-netty" % grpcJavaVersion
     )
   )
   .dependsOn(protos)
@@ -60,7 +62,7 @@ lazy val gateway = (project in file("gateway"))
       "com.softwaremill.sttp" %% "core" % "1.1.2" % Test,
       "org.json4s" %% "json4s-jackson" % "3.5.3" % Test
     ),
-    Revolver.enableDebugging(5015, suspend = true),
+//    Revolver.enableDebugging(5015, suspend = true),
     PB.protoSources in Compile := Seq(
       target.value / "protobuf_external" / "hellogrpc"
     )

@@ -6,9 +6,10 @@ import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import com.google.protobuf.Descriptors._
 import com.google.protobuf.ExtensionRegistry
 import com.google.protobuf.compiler.PluginProtos.{CodeGeneratorRequest, CodeGeneratorResponse}
-import scalapb.compiler.FunctionalPrinter.PrinterEndo
-import scalapb.compiler.{DescriptorPimps, FunctionalPrinter}
+import protocbridge.Artifact
 
+import scalapb.compiler.FunctionalPrinter.PrinterEndo
+import scalapb.compiler.{DescriptorPimps, FunctionalPrinter, GeneratorParams, ProtobufGenerator}
 import scala.collection.JavaConverters._
 import scalapb.options.compiler.Scalapb
 

@@ -1,7 +1,7 @@
 import scalapb.compiler.Version.{grpcJavaVersion, scalapbVersion}
 
 organization in ThisBuild := "beyondthelines"
-version in ThisBuild := "0.0.9"
+version in ThisBuild := "0.0.10-SNAPSHOT"
 licenses in ThisBuild := ("MIT", url("http://opensource.org/licenses/MIT")) :: Nil
 bintrayOrganization in ThisBuild := Some("beyondthelines")
 bintrayPackageLabels in ThisBuild := Seq("scala", "protobuf", "grpc")
@@ -38,5 +38,5 @@ lazy val plugin = (project in file("plugin"))
   .settings(
     sbtPlugin := true,
     name := "GrpcGatewayPlugin",
-    addSbtPlugin("com.thesamet" % "sbt-protoc" % "0.99.13")
+    addSbtPlugin("com.thesamet" % "sbt-protoc" % "0.99.17")
   ).dependsOn(generator)
