@@ -6,15 +6,15 @@ import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import com.google.protobuf.Descriptors._
 import com.google.protobuf.ExtensionRegistry
 import com.google.protobuf.compiler.PluginProtos.{CodeGeneratorRequest, CodeGeneratorResponse}
-import com.trueaccord.scalapb.compiler.FunctionalPrinter.PrinterEndo
-import com.trueaccord.scalapb.compiler.{DescriptorPimps, FunctionalPrinter}
+import scalapb.compiler.FunctionalPrinter.PrinterEndo
+import scalapb.compiler.{DescriptorPimps, FunctionalPrinter}
 
 import scala.collection.JavaConverters._
-import scalapbshade.v0_6_7.com.trueaccord.scalapb.Scalapb
+import scalapb.options.compiler.Scalapb
 
 object GatewayGenerator extends protocbridge.ProtocCodeGenerator with DescriptorPimps {
 
-  override val params = com.trueaccord.scalapb.compiler.GeneratorParams()
+  override val params = scalapb.compiler.GeneratorParams()
 
   override def run(requestBytes: Array[Byte]): Array[Byte] = {
     val registry = ExtensionRegistry.newInstance()
@@ -48,8 +48,8 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .add(s"package ${fileDesc.scalaPackageName}")
       .newline
       .add(
-        "import _root_.com.trueaccord.scalapb.GeneratedMessage",
-        "import _root_.com.trueaccord.scalapb.json.JsonFormat",
+        "import _root_.scalapb.GeneratedMessage",
+        "import _root_.scalapb.json4s.JsonFormat",
         "import _root_.grpcgateway.handlers._",
         "import _root_.io.grpc._",
         "import _root_.io.netty.handler.codec.http.{HttpMethod, QueryStringDecoder}"
@@ -58,7 +58,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .add(
         "import scala.collection.JavaConverters._",
         "import scala.concurrent.{ExecutionContext, Future}",
-        "import com.trueaccord.scalapb.json.JsonFormatException",
+        "import scalapb.json4s.JsonFormatException",
         "import scala.util._"
       )
       .newline
@@ -168,7 +168,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add(s"""case ("PUT", "${http.getPut}") => """)
           .add("for {")
           .addIndented(
-            s"""msg <- Future.fromTry(JsonFormat.fromJsonString[${method.getInputType.getName}](body).recoverWith(jsonException2GatewayExceptionPF))""",
+            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
             s"res <- stub.$methodName(msg)"
           )
           .add("} yield res")
