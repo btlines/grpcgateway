@@ -3,52 +3,31 @@ package grpcgateway.generators
 import com.google.api.AnnotationsProto
 import com.google.api.HttpRule.PatternCase
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
-import com.google.protobuf.Descriptors.{Descriptor, FieldDescriptor, FileDescriptor, MethodDescriptor}
+import com.google.protobuf.Descriptors._
 import com.google.protobuf.ExtensionRegistry
 import com.google.protobuf.compiler.PluginProtos.{CodeGeneratorRequest, CodeGeneratorResponse}
-import scalapb.compiler.FunctionalPrinter.PrinterEndo
-import scalapb.compiler.{DescriptorPimps, FunctionalPrinter}
 
+import scalapb.compiler.FunctionalPrinter.PrinterEndo
+import scalapb.compiler.{DescriptorPimps, FunctionalPrinter, GeneratorParams, ProtobufGenerator}
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scalapb.options.compiler.Scalapb
 
-object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with DescriptorPimps {
+class SwaggerGenerator(
+  val params: GeneratorParams
+) extends DescriptorPimps {
 
-  override val params = scalapb.compiler.GeneratorParams()
-
-  override def run(requestBytes: Array[Byte]): Array[Byte] = {
-    val registry = ExtensionRegistry.newInstance()
-    Scalapb.registerAllExtensions(registry)
-    AnnotationsProto.registerAllExtensions(registry)
-
-    val b = CodeGeneratorResponse.newBuilder
-    val request = CodeGeneratorRequest.parseFrom(requestBytes, registry)
-
-    val fileDescByName: Map[String, FileDescriptor] =
-      request.getProtoFileList.asScala.foldLeft[Map[String, FileDescriptor]](Map.empty) {
-        case (acc, fp) =>
-          val deps = fp.getDependencyList.asScala.map(acc)
-          acc + (fp.getName -> FileDescriptor.buildFrom(fp, deps.toArray))
-      }
-
-    request.getFileToGenerateList.asScala
-      .map(fileDescByName)
-      .filter(_.getServices.asScala.nonEmpty)
-      .map(generateFile)
-      .foreach(b.addFile)
-
-    b.build.toByteArray
+  def generateFile(serviceDesc: ServiceDescriptor): CodeGeneratorResponse.File = {
+    val b = CodeGeneratorResponse.File.newBuilder()
+    b.setName(s"${serviceDesc.getName}.yml")
+    b.setContent(generateFileContent(serviceDesc))
+    b.build
   }
 
-  private def generateFile(fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
-    val b = CodeGeneratorResponse.File.newBuilder()
+  private def generateFileContent(serviceDescriptor: ServiceDescriptor): String = {
 
-    val objectName = fileDesc.fileDescriptorObjectName.substring(0, fileDesc.fileDescriptorObjectName.length - 5)
-    b.setName(s"${objectName}Service.yml")
-
-    val methods = fileDesc.getServices.asScala
-      .flatMap(_.getMethods.asScala)
+    val methods = serviceDescriptor
+      .getMethods.asScala
       .filter { m =>
         // only unary calls with http method specified
         !m.isClientStreaming && !m.isServerStreaming && m.getOptions.hasExtension(AnnotationsProto.http)
@@ -60,8 +39,8 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .add("swagger: '2.0'", "info:")
       .addIndented(
         "version: not set",
-        s"title: '${fileDesc.fileDescriptorObjectName}'",
-        s"description: 'REST API generated from ${fileDesc.getFile.getName}'"
+        s"title: '${serviceDescriptor.getName}'",
+        s"description: 'REST API generated from ${serviceDescriptor.getFile.getName}'"
       )
       .add("schemes:")
       .addIndented("- http", "- https")
@@ -78,8 +57,8 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .print(definitions) { case (p, d) => generateDefinition(d)(p) }
       .outdent
 
-    b.setContent(fp.result)
-    b.build
+      fp.result()
+
   }
 
   private def extractPath(m: MethodDescriptor): String = {
@@ -259,4 +238,40 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     }
     extractDefsRec(d)
   }
+
+}
+
+object SwaggerGenerator extends protocbridge.ProtocCodeGenerator {
+
+  override def run(requestBytes: Array[Byte]): Array[Byte] = {
+    val registry = ExtensionRegistry.newInstance()
+    Scalapb.registerAllExtensions(registry)
+    AnnotationsProto.registerAllExtensions(registry)
+
+    val b = CodeGeneratorResponse.newBuilder
+    val request = CodeGeneratorRequest.parseFrom(requestBytes, registry)
+
+    ProtobufGenerator.parseParameters(request.getParameter).fold(
+      err => b.setError(err),
+      params => {
+
+        val generator = new SwaggerGenerator(params)
+
+        val fileDescByName: Map[String, FileDescriptor] =
+          request.getProtoFileList.asScala.foldLeft[Map[String, FileDescriptor]](Map.empty) {
+            case (acc, fp) =>
+              val deps = fp.getDependencyList.asScala.map(acc)
+              acc + (fp.getName -> FileDescriptor.buildFrom(fp, deps.toArray))
+          }
+
+        for {
+          fileDesc <- request.getFileToGenerateList.asScala.map(fileDescByName)
+          serviceDesc <- fileDesc.getServices.asScala
+        } b.addFile(generator.generateFile(serviceDesc))
+      }
+    )
+
+    b.build.toByteArray
+  }
+
 }
