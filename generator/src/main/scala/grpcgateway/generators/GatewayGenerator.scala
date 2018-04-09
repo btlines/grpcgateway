@@ -14,7 +14,7 @@ import scala.collection.JavaConverters._
 import scalapb.options.compiler.Scalapb
 
 class GatewayGenerator(
-  val params: GeneratorParams
+  val params: GeneratorParams = scalapb.compiler.GeneratorParams()
 ) extends DescriptorPimps {
 
   def generateServiceFile(serviceDescriptor: ServiceDescriptor): CodeGeneratorResponse.File = {
@@ -75,7 +75,7 @@ class GatewayGenerator(
     }.toList
   }
 
-  private def generateUnaryCall(service: ServiceDescriptor): PrinterEndo = { printer =>
+  def generateUnaryCall(service: ServiceDescriptor): PrinterEndo = { printer =>
     val methods = getUnaryCallsWithHttpExtension(service)
     printer
       .add(s"override def unaryCall(method: HttpMethod, uri: String, body: String): Future[GeneratedMessage] = {")
@@ -123,13 +123,13 @@ class GatewayGenerator(
     }
   }
 
-  private def generateMethodHandlerCase(method: MethodDescriptor): PrinterEndo = { printer =>
+  def generateMethodHandlerCase(method: MethodDescriptor): PrinterEndo = { printer =>
     val http       = method.getOptions.getExtension(AnnotationsProto.http)
     val methodName = method.getName.charAt(0).toLower + method.getName.substring(1)
     http.getPatternCase match {
       case PatternCase.GET =>
         printer
-          .add(s"""case ("GET", "${http.getGet}") => """)
+          .add(s"""case ("GET", "${http.getGet}") =>""")
           .indent
           .add("val input = Try {")
           .indent
@@ -185,22 +185,22 @@ class GatewayGenerator(
                 .outdent
                 .add("}")
             case JavaType.ENUM =>
-              p.add(s"val ${inputName(f, prefix)} = ")
+              p.add(s"val ${inputName(f, prefix)} =")
                 .addIndented(
                   s"""${f.getName}.valueOf(queryString.parameters().get("$prefix${f.getJsonName}").asScala.head)"""
                 )
             case JavaType.BOOLEAN =>
-              p.add(s"val ${inputName(f, prefix)} = ")
+              p.add(s"val ${inputName(f, prefix)} =")
                 .addIndented(
                   s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toBoolean"""
                 )
             case JavaType.DOUBLE =>
-              p.add(s"val ${inputName(f, prefix)} = ")
+              p.add(s"val ${inputName(f, prefix)} =")
                 .addIndented(
                   s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toDouble"""
                 )
             case JavaType.FLOAT =>
-              p.add(s"val ${inputName(f, prefix)} = ")
+              p.add(s"val ${inputName(f, prefix)} =")
                 .addIndented(
                   s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toFloat"""
                 )
@@ -215,7 +215,7 @@ class GatewayGenerator(
                   s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toLong"""
                 )
             case JavaType.STRING =>
-              p.add(s"val ${inputName(f, prefix)} = ")
+              p.add(s"val ${inputName(f, prefix)} =")
                 .addIndented(
                   s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head"""
                 )

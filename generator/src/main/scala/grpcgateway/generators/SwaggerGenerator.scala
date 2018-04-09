@@ -14,7 +14,7 @@ import scala.collection.mutable
 import scalapb.options.compiler.Scalapb
 
 class SwaggerGenerator(
-  val params: GeneratorParams
+  val params: GeneratorParams = scalapb.compiler.GeneratorParams()
 ) extends DescriptorPimps {
 
   def generateFile(serviceDesc: ServiceDescriptor): CodeGeneratorResponse.File = {
