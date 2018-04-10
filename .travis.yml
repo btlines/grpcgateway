@@ -3,5 +3,5 @@ language: scala
 jdk: openjdk8
 
 script:
-- sbt clean package
+- sbt clean test
 - test $TRAVIS_PULL_REQUEST = false && sbt updateImpactSubmit || true

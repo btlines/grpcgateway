@@ -14,7 +14,7 @@ lazy val runtime = (project in file("runtime"))
     libraryDependencies ++= Seq(
       "com.thesamet.scalapb"   %% "compilerplugin"          % scalapbVersion,
       "com.thesamet.scalapb"   %% "scalapb-runtime-grpc"    % scalapbVersion,
-      "com.thesamet.scalapb"   %% "scalapb-json4s"          % scalapbVersion,
+      "com.thesamet.scalapb"   %% "scalapb-json4s"          % "0.7.0",
       "io.grpc"                %  "grpc-netty"              % grpcJavaVersion,
       "org.webjars"            %  "swagger-ui"              % "3.5.0",
       "org.slf4j"              %  "slf4j-api"               % "1.7.25"

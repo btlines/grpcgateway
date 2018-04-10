@@ -2,11 +2,9 @@ import grpcgateway.generators.GatewayGenerator
 import org.scalatest.{FlatSpec, Matchers}
 import grpcgateway.test.SimpleServiceGrpc
 
-import scalapb.compiler.{DescriptorPimps, FunctionalPrinter, GeneratorParams}
+import scalapb.compiler.FunctionalPrinter
 
-class GatewayGeneratorSpec extends FlatSpec with Matchers with DescriptorPimps {
-
-  val params = GeneratorParams()
+class GatewayGeneratorSpec extends FlatSpec with Matchers {
 
   val gen = new GatewayGenerator()
 
