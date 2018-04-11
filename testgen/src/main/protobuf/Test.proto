@@ -25,8 +25,12 @@ service SimpleService {
         option (google.api.http) = {
             get: "/api/concatWords"
         };
-
     };
 
+    rpc concatWords2(ConcatWords) returns (SuccessResult) {
+        option (google.api.http) = {
+            post: "/api/concatWords2"
+        };
+    }
 
 }

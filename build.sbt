@@ -37,11 +37,13 @@ lazy val generator = (project in file("generator"))
 lazy val testgen = (project in file("testgen"))
   .settings(
     PB.targets in Compile := Seq(
-      // compile your proto files into scala source files
       scalapb.gen(javaConversions = true) -> (sourceManaged in Compile).value,
-      PB.gens.java -> (sourceManaged in Compile).value
+      PB.gens.java -> (sourceManaged in Compile).value,
+      grpcgateway.generators.SwaggerGenerator -> (resourceDirectory in Compile).value / "specs",
+      grpcgateway.generators.GatewayGenerator -> (sourceManaged in Compile).value
     ),
     libraryDependencies ++= Seq(
+      "com.softwaremill.sttp" %% "core" % "1.1.12",
       "org.scalatest" %% "scalatest" % "3.0.5" % "test",
       "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf",
       "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
@@ -54,4 +56,4 @@ lazy val testgen = (project in file("testgen"))
   .settings(
     publish := {}
   )
-  .dependsOn(generator)
+  .dependsOn(runtime)
