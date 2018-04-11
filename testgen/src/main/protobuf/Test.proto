@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package grpcgateway.test;
+
+import "google/api/annotations.proto";
+
+import "scalapb/scalapb.proto";
+
+option (scalapb.options) = {
+  flat_package: true
+};
+
+message ConcatWords {
+    string word1 = 1;
+    string word2 = 2;
+}
+
+message SuccessResult {
+    string result = 1;
+}
+
+service SimpleService {
+
+    rpc concatWords(ConcatWords) returns (SuccessResult) {
+        option (google.api.http) = {
+            get: "/api/concatWords"
+        };
+    };
+
+    rpc concatWords2(ConcatWords) returns (SuccessResult) {
+        option (google.api.http) = {
+            post: "/api/concatWords2"
+        };
+    }
+
+}

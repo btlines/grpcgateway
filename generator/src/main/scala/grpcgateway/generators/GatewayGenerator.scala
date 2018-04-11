@@ -6,46 +6,33 @@ import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import com.google.protobuf.Descriptors._
 import com.google.protobuf.ExtensionRegistry
 import com.google.protobuf.compiler.PluginProtos.{CodeGeneratorRequest, CodeGeneratorResponse}
-import scalapb.compiler.FunctionalPrinter.PrinterEndo
-import scalapb.compiler.{DescriptorPimps, FunctionalPrinter}
+import protocbridge.Artifact
 
+import scalapb.compiler.FunctionalPrinter.PrinterEndo
+import scalapb.compiler.{DescriptorPimps, FunctionalPrinter, GeneratorParams, ProtobufGenerator}
 import scala.collection.JavaConverters._
 import scalapb.options.compiler.Scalapb
 
-object GatewayGenerator extends protocbridge.ProtocCodeGenerator with DescriptorPimps {
+class GatewayGenerator(
+  val params: GeneratorParams = scalapb.compiler.GeneratorParams()
+) extends DescriptorPimps {
 
-  override val params = scalapb.compiler.GeneratorParams()
-
-  override def run(requestBytes: Array[Byte]): Array[Byte] = {
-    val registry = ExtensionRegistry.newInstance()
-    Scalapb.registerAllExtensions(registry)
-    AnnotationsProto.registerAllExtensions(registry)
-
-    val b = CodeGeneratorResponse.newBuilder
-    val request = CodeGeneratorRequest.parseFrom(requestBytes, registry)
-
-    val fileDescByName: Map[String, FileDescriptor] =
-      request.getProtoFileList.asScala.foldLeft[Map[String, FileDescriptor]](Map.empty) {
-        case (acc, fp) =>
-          val deps = fp.getDependencyList.asScala.map(acc)
-          acc + (fp.getName -> FileDescriptor.buildFrom(fp, deps.toArray))
-      }
-
-    request.getFileToGenerateList.asScala.foreach { name =>
-      val fileDesc     = fileDescByName(name)
-      val responseFile = generateFile(fileDesc)
-      b.addFile(responseFile)
-    }
-    b.build.toByteArray
+  def generateServiceFile(serviceDescriptor: ServiceDescriptor): CodeGeneratorResponse.File = {
+    val b = CodeGeneratorResponse.File.newBuilder()
+    val packageName: List[String] = getPackageName(serviceDescriptor)
+    b.setName(s"${packageName.mkString("/")}/${serviceDescriptor.getName}Handler.scala")
+    b.setContent(generateFileContent(serviceDescriptor))
+    b.build
   }
 
-  private def generateFile(fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
-    val b          = CodeGeneratorResponse.File.newBuilder()
-    val objectName = fileDesc.fileDescriptorObjectName.substring(0, fileDesc.fileDescriptorObjectName.length - 5) + "Gateway"
-    b.setName(s"${fileDesc.scalaDirectory}/$objectName.scala")
+  def getPackageName(serviceDescriptor: ServiceDescriptor): List[String] = {
+    serviceDescriptor.getFile.scalaPackagePartsAsSymbols.toList
+  }
+
+  def generateFileContent(serviceDescriptor: ServiceDescriptor): String = {
 
     val fp = FunctionalPrinter()
-      .add(s"package ${fileDesc.scalaPackageName}")
+      .add(s"package ${getPackageName(serviceDescriptor).mkString(".")}")
       .newline
       .add(
         "import _root_.scalapb.GeneratedMessage",
@@ -62,36 +49,33 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
         "import scala.util._"
       )
       .newline
-      .print(fileDesc.getServices.asScala) { case (p, s) => generateService(s)(p) }
-      .newline
-
-    b.setContent(fp.result)
-    b.build
-  }
-
-  private def generateService(service: ServiceDescriptor): PrinterEndo =
-    _.add(s"class ${service.getName}Handler(channel: ManagedChannel)(implicit ec: ExecutionContext)").indent
+      .add(s"class ${serviceDescriptor.getName}Handler(channel: ManagedChannel)(implicit ec: ExecutionContext)")
+      .indent
       .add(
         "extends GrpcGatewayHandler(channel)(ec) {",
-        s"""override val name: String = "${service.getName}"""",
-        s"private val stub = ${service.getName}Grpc.stub(channel)"
+        s"""override val name: String = "${serviceDescriptor.getName}"""",
+        s"private val stub = ${serviceDescriptor.getFile.scalaPackageName}.${serviceDescriptor.objectName}.stub(channel)"
       )
       .newline
-      .call(generateSupportsCall(service))
+      .call(generateSupportsCall(serviceDescriptor))
       .newline
-      .call(generateUnaryCall(service))
+      .call(generateUnaryCall(serviceDescriptor))
       .outdent
       .add("}")
       .newline
 
-  private def getUnaryCallsWithHttpExtension(service: ServiceDescriptor) = {
+    fp.result()
+
+  }
+
+  def getUnaryCallsWithHttpExtension(service: ServiceDescriptor): List[MethodDescriptor] = {
     service.getMethods.asScala.filter { m =>
       // only unary calls with http method specified
       !m.isClientStreaming && !m.isServerStreaming && m.getOptions.hasExtension(AnnotationsProto.http)
-    }
+    }.toList
   }
 
-  private def generateUnaryCall(service: ServiceDescriptor): PrinterEndo = { printer =>
+  def generateUnaryCall(service: ServiceDescriptor): PrinterEndo = { printer =>
     val methods = getUnaryCallsWithHttpExtension(service)
     printer
       .add(s"override def unaryCall(method: HttpMethod, uri: String, body: String): Future[GeneratedMessage] = {")
@@ -139,13 +123,13 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     }
   }
 
-  private def generateMethodHandlerCase(method: MethodDescriptor): PrinterEndo = { printer =>
+  def generateMethodHandlerCase(method: MethodDescriptor): PrinterEndo = { printer =>
     val http       = method.getOptions.getExtension(AnnotationsProto.http)
     val methodName = method.getName.charAt(0).toLower + method.getName.substring(1)
     http.getPatternCase match {
       case PatternCase.GET =>
         printer
-          .add(s"""case ("GET", "${http.getGet}") => """)
+          .add(s"""case ("GET", "${http.getGet}") =>""")
           .indent
           .add("val input = Try {")
           .indent
@@ -159,7 +143,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add(s"""case ("POST", "${http.getPost}") => """)
           .add("for {")
           .addIndented(
-            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
+            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.scalaIn}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
             s"res <- stub.$methodName(msg)"
           )
           .add("} yield res")
@@ -168,7 +152,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add(s"""case ("PUT", "${http.getPut}") => """)
           .add("for {")
           .addIndented(
-            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
+            s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.scalaIn}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
             s"res <- stub.$methodName(msg)"
           )
           .add("} yield res")
@@ -201,22 +185,22 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
                 .outdent
                 .add("}")
             case JavaType.ENUM =>
-              p.add(s"val ${inputName(f, prefix)} = ")
+              p.add(s"val ${inputName(f, prefix)} =")
                 .addIndented(
                   s"""${f.getName}.valueOf(queryString.parameters().get("$prefix${f.getJsonName}").asScala.head)"""
                 )
             case JavaType.BOOLEAN =>
-              p.add(s"val ${inputName(f, prefix)} = ")
+              p.add(s"val ${inputName(f, prefix)} =")
                 .addIndented(
                   s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toBoolean"""
                 )
             case JavaType.DOUBLE =>
-              p.add(s"val ${inputName(f, prefix)} = ")
+              p.add(s"val ${inputName(f, prefix)} =")
                 .addIndented(
                   s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toDouble"""
                 )
             case JavaType.FLOAT =>
-              p.add(s"val ${inputName(f, prefix)} = ")
+              p.add(s"val ${inputName(f, prefix)} =")
                 .addIndented(
                   s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toFloat"""
                 )
@@ -231,7 +215,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
                   s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head.toLong"""
                 )
             case JavaType.STRING =>
-              p.add(s"val ${inputName(f, prefix)} = ")
+              p.add(s"val ${inputName(f, prefix)} =")
                 .addIndented(
                   s"""queryString.parameters().get("$prefix${f.getJsonName}").asScala.head"""
                 )
@@ -245,5 +229,45 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
     val name = prefix.split(".").filter(_.nonEmpty).map(s => s.charAt(0).toUpper + s.substring(1)).mkString + d.getName
     name.charAt(0).toLower + name.substring(1)
   }
+
+}
+
+object GatewayGenerator extends protocbridge.ProtocCodeGenerator {
+
+  override def run(requestBytes: Array[Byte]): Array[Byte] = {
+    val registry = ExtensionRegistry.newInstance()
+    Scalapb.registerAllExtensions(registry)
+    AnnotationsProto.registerAllExtensions(registry)
+
+    val b = CodeGeneratorResponse.newBuilder
+    val request = CodeGeneratorRequest.parseFrom(requestBytes, registry)
+
+    ProtobufGenerator.parseParameters(request.getParameter).fold(
+      err => b.setError(err),
+      params => {
+        val generator = new GatewayGenerator(params)
+
+        val fileDescByName: Map[String, FileDescriptor] =
+          request.getProtoFileList.asScala.foldLeft[Map[String, FileDescriptor]](Map.empty) {
+            case (acc, fp) =>
+              val deps = fp.getDependencyList.asScala.map(acc)
+              acc + (fp.getName -> FileDescriptor.buildFrom(fp, deps.toArray))
+          }
+
+        for {
+          fileDesc <- request.getFileToGenerateList.asScala.map(fileDescByName)
+          serviceDesc <- fileDesc.getServices.asScala
+        } b.addFile(generator.generateServiceFile(serviceDesc))
+
+      }
+    )
+
+    b.build.toByteArray
+  }
+
+  override def suggestedDependencies: Seq[Artifact] = Seq(
+    Artifact("beyondthelines", "grpcgatewayruntime",
+      grpcgateway.generators.BuildInfo.version, crossVersion = true)
+  )
 
 }

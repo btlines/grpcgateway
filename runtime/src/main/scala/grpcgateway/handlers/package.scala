@@ -8,7 +8,6 @@ import io.netty.buffer.Unpooled
 import io.netty.handler.codec.http._
 
 import scala.util.{Failure, Try}
-import handlers._
 
 package object handlers {
 
