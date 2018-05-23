@@ -10,9 +10,12 @@ import io.netty.channel.{ ChannelFutureListener, ChannelHandlerContext, ChannelI
 import io.netty.handler.codec.http._
 
 import scala.concurrent.{ ExecutionContext, Future }
+import org.slf4j.{ Logger, LoggerFactory }
 
 @Sharable
 abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: ExecutionContext) extends ChannelInboundHandlerAdapter {
+
+  private val logger: Logger = LoggerFactory.getLogger(getClass)
 
   def name: String
 
@@ -45,14 +48,15 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
 
               val (body, status) = err match {
                 case e: GatewayException => e.details -> GRPC_HTTP_CODE_MAP.getOrElse(e.code, HttpResponseStatus.INTERNAL_SERVER_ERROR)
-                case _ => "Internal error" -> HttpResponseStatus.INTERNAL_SERVER_ERROR
+                case _ =>
+                  logger.warn("channel read exception", err)
+                  "Internal error" -> HttpResponseStatus.INTERNAL_SERVER_ERROR
               }
 
               buildFullHttpResponse(
                 requestMsg = req,
                 responseBody = body,
-                responseStatus = status,
-                responseContentType = "application/text"
+                responseStatus = status
               )
             }).foreach(resp => {
               ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE)

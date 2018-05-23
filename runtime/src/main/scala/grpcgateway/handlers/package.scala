@@ -36,7 +36,7 @@ package object handlers {
    requestMsg: HttpMessage,
    responseBody: String,
    responseStatus: HttpResponseStatus,
-   responseContentType: String
+   responseContentType: String = "application/text"
   ): FullHttpResponse = {
 
     val buf = Unpooled.copiedBuffer(responseBody, StandardCharsets.UTF_8)

@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package hellogrpc.calc;
+
+import "scalapb/scalapb.proto";
+
+import "google/api/annotations.proto";
+
+option (scalapb.options) = {
+  flat_package: true
+};
+
+service CalcService {
+
+    rpc CalcSum (SumRequest) returns (CalcResponse) {
+        option (google.api.http) = {
+          post: "/calcService/sum"
+          body: "*"
+        };
+    }
+
+}
+
+message SumRequest {
+
+    int32 a = 1;
+    int32 b = 2;
+
+}
+
+message CalcResponse {
+
+    int32 result = 1;
+
+}

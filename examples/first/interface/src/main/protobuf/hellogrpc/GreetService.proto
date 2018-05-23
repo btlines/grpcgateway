@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package hellogrpc.greet;
+
+import "scalapb/scalapb.proto";
+
+import "google/api/annotations.proto";
+
+option (scalapb.options) = {
+  flat_package: true
+};
+
+service GreetService {
+
+    rpc Greet (GreetRequest) returns (GreetResponse) {
+        option (google.api.http) = {
+          post: "/greetService/greet"
+          body: "*"
+        };
+    }
+
+}
+
+message GreetRequest {
+
+    string name = 1;
+
+}
+
+message GreetResponse {
+
+    string greeting = 1;
+
+}

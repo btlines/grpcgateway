@@ -11,8 +11,7 @@ class MethodNotFoundHandler  extends ChannelInboundHandlerAdapter {
           buildFullHttpResponse(
             requestMsg = req,
             responseBody = "Method isn't supported",
-            responseStatus = HttpResponseStatus.BAD_REQUEST,
-            responseContentType = "application/text"
+            responseStatus = HttpResponseStatus.BAD_REQUEST
           )
         }.addListener(ChannelFutureListener.CLOSE)
       case _ => super.channelRead(ctx, msg)

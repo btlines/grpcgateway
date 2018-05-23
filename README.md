@@ -13,7 +13,26 @@ Automatically derive REST services from GRPC specifications.
 GRPCGateway is inspired by the [GRPCGateway originally developed in Go](https://github.com/grpc-ecosystem/grpc-gateway). 
 It creates a Proxy forwarding REST calls to GRPC services. 
 
-## Installation
+## Installation (Plugin)
+
+You need to enable **GrpcGateway** plugin. It automatically adds sbt-protoc plugin
+
+You can do it by adding a `grpcgateway.sbt` file into your `project` folder with the following lines:
+
+```scala
+addSbtPlugin("beyondthelines" % "grpcgatewayplugin" % "0.0.7")
+
+resolvers += Resolver.bintrayRepo("beyondthelines", "maven")
+```
+
+Enable GrpcGatewayPlugin in your project
+
+```scala
+lazy val myGrpcService = (project in file("service"))
+  .enablePlugins(GrpcGatewayPlugin)
+```
+
+## Installation (Manual)
 
 You need to enable [`sbt-protoc`](https://github.com/thesamet/sbt-protoc) plugin to generate source code for the proto definitions.
 You can do it by adding a `protoc.sbt` file into your `project` folder with the following lines:
