@@ -47,7 +47,6 @@ private final class MatchingUrlTemplate(matchers: Seq[PathMatcher]) extends UrlT
     while (pathIndex < path.length) {
       val from = pathIndex
 
-
       // handle bounds for cases where we have ran out of matchers
       if(matcherIndex >= matchers.length) {
         return None

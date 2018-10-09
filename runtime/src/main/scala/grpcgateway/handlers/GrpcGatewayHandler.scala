@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets
 
 import scalapb.GeneratedMessage
 import scalapb.json4s.JsonFormat
-import io.grpc.ManagedChannel
+import io.grpc.{ManagedChannel, StatusException, StatusRuntimeException}
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.{ChannelFutureListener, ChannelHandlerContext, ChannelInboundHandlerAdapter}
 import io.netty.handler.codec.http._
@@ -40,7 +40,13 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
           val body = req.content().toString(StandardCharsets.UTF_8)
 
           unaryCall(body)
-            .map(JsonFormat.toJsonString)
+            .map(
+              new scalapb.json4s.Printer(
+                includingDefaultValueFields = true,
+                preservingProtoFieldNames = false,
+                formattingLongAsNumber = false
+              ).print
+            )
             .map(json => {
               buildFullHttpResponse(
                 requestMsg = req,
@@ -53,6 +59,8 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
 
             val (body, status) = err match {
               case e: GatewayException => e.details -> GRPC_HTTP_CODE_MAP.getOrElse(e.code, HttpResponseStatus.INTERNAL_SERVER_ERROR)
+              case e: StatusException => e.getStatus.getDescription -> GRPC_HTTP_CODE_MAP.getOrElse(e.getStatus.getCode.value(), HttpResponseStatus.INTERNAL_SERVER_ERROR)
+              case e: StatusRuntimeException => e.getStatus.getDescription -> GRPC_HTTP_CODE_MAP.getOrElse(e.getStatus.getCode.value(), HttpResponseStatus.INTERNAL_SERVER_ERROR)
               case _ => "Internal error" -> HttpResponseStatus.INTERNAL_SERVER_ERROR
             }
 
