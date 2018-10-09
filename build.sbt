@@ -1,11 +1,14 @@
 import scalapb.compiler.Version.{grpcJavaVersion, scalapbVersion}
 
 organization in ThisBuild := "beyondthelines"
-version in ThisBuild := "0.0.9"
+version in ThisBuild := "0.0.10-SNAPSHOT"
 licenses in ThisBuild := ("MIT", url("http://opensource.org/licenses/MIT")) :: Nil
 bintrayOrganization in ThisBuild := Some("beyondthelines")
 bintrayPackageLabels in ThisBuild := Seq("scala", "protobuf", "grpc")
 scalaVersion in ThisBuild := "2.12.6"
+
+val googleapisVersion = "0.0.3"
+val scalatestVersion = "3.0.4"
 
 lazy val runtime = (project in file("runtime"))
   .settings(
@@ -16,8 +19,9 @@ lazy val runtime = (project in file("runtime"))
       "com.thesamet.scalapb"   %% "scalapb-runtime-grpc"    % scalapbVersion,
       "com.thesamet.scalapb"   %% "scalapb-json4s"          % "0.7.1",
       "io.grpc"                %  "grpc-netty"              % grpcJavaVersion,
+      "org.scalatest"          %% "scalatest"               % scalatestVersion % Test,
       "org.webjars"            %  "swagger-ui"              % "3.5.0",
-      "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf"
+      "com.google.api.grpc"    % "googleapis-common-protos" % googleapisVersion % "protobuf"
     ),
     PB.protoSources in Compile += target.value / "protobuf_external",
     includeFilter in PB.generate := new SimpleFilter(
@@ -37,7 +41,8 @@ lazy val generator = (project in file("generator"))
     libraryDependencies ++= Seq(
       "com.thesamet.scalapb"   %% "compilerplugin"          % scalapbVersion,
       "com.thesamet.scalapb"   %% "scalapb-runtime-grpc"    % scalapbVersion,
-      "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf"
+      "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf",
+      "org.scalatest"          %% "scalatest"                % scalatestVersion % Test
     ),
     PB.protoSources in Compile += target.value / "protobuf_external",
     includeFilter in PB.generate := new SimpleFilter(
