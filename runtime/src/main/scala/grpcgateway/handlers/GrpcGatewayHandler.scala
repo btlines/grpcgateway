@@ -3,7 +3,6 @@ package grpcgateway.handlers
 import java.nio.charset.StandardCharsets
 
 import scalapb.GeneratedMessage
-import scalapb.json4s.JsonFormat
 import io.grpc.{ManagedChannel, StatusException, StatusRuntimeException}
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.{ChannelFutureListener, ChannelHandlerContext, ChannelInboundHandlerAdapter}
