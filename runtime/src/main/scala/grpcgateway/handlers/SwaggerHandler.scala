@@ -86,6 +86,7 @@ class SwaggerHandler(services: Seq[GrpcGatewayHandler]) extends ChannelInboundHa
   private val mimeTypes = new MimetypesFileTypeMap()
   mimeTypes.addMimeTypes("image/png png PNG")
   mimeTypes.addMimeTypes("text/css css CSS")
+
   private val serviceUrls  = services.map(s => s"{url: '/specs/${s.name}.yml', name: '${s.name}'}").mkString(", ")
   private val serviceNames = services.map(s => s.name).mkString(", ")
   private val indexPage =
