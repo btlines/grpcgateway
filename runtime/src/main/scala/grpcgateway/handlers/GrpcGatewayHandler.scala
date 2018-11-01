@@ -1,14 +1,14 @@
 package grpcgateway.handlers
 
-import java.nio.charset.StandardCharsets
-
-import scalapb.GeneratedMessage
 import io.grpc.{ManagedChannel, StatusException, StatusRuntimeException}
+import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.{ChannelFutureListener, ChannelHandlerContext, ChannelInboundHandlerAdapter}
 import io.netty.handler.codec.http._
+import scalapb.GeneratedMessage
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Try}
 
 @Sharable
 abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: ExecutionContext) extends ChannelInboundHandlerAdapter {
@@ -36,7 +36,20 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
 
         if (mayBeCall.isDefined) {
           val unaryCall = mayBeCall.get
-          val body = req.content().toString(StandardCharsets.UTF_8)
+          val body = Try({
+            val buf = req.content()
+            val bytes = new Array[Byte](buf.readableBytes())
+
+            try(buf.readBytes(bytes))
+            finally {
+              buf.release()
+            }
+            new String(bytes)
+          }).recoverWith({
+            case ex : Throwable =>
+              ex.printStackTrace()
+              Failure(ex)
+          }).getOrElse("")
 
           unaryCall(body)
             .map(
