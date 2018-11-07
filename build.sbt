@@ -16,7 +16,7 @@ lazy val runtime = (project in file("runtime"))
       "com.thesamet.scalapb"   %% "scalapb-runtime-grpc"    % scalapbVersion,
       "com.thesamet.scalapb"   %% "scalapb-json4s"          % "0.7.1",
       "io.grpc"                %  "grpc-netty"              % grpcJavaVersion,
-      "org.webjars"            %  "swagger-ui"              % "3.5.0",
+      "org.webjars"            %  "swagger-ui"              % "3.19.4",
       "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf"
     ),
     PB.protoSources in Compile += target.value / "protobuf_external",
