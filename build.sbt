@@ -5,11 +5,11 @@ version in ThisBuild := "0.0.9"
 licenses in ThisBuild := ("MIT", url("http://opensource.org/licenses/MIT")) :: Nil
 bintrayOrganization in ThisBuild := Some("beyondthelines")
 bintrayPackageLabels in ThisBuild := Seq("scala", "protobuf", "grpc")
-scalaVersion in ThisBuild := "2.12.6"
+scalaVersion in ThisBuild := "2.12.8"
 
 lazy val runtime = (project in file("runtime"))
   .settings(
-    crossScalaVersions := Seq("2.12.6", "2.11.12"),
+    crossScalaVersions := Seq("2.12.8", "2.11.12"),
     name := "GrpcGatewayRuntime",
     libraryDependencies ++= Seq(
       "com.thesamet.scalapb"   %% "compilerplugin"          % scalapbVersion,
@@ -32,7 +32,7 @@ lazy val runtime = (project in file("runtime"))
 
 lazy val generator = (project in file("generator"))
   .settings(
-    crossScalaVersions := Seq("2.12.6", "2.10.7"),
+    crossScalaVersions := Seq("2.12.8", "2.10.7"),
     name := "GrpcGatewayGenerator",
     libraryDependencies ++= Seq(
       "com.thesamet.scalapb"   %% "compilerplugin"          % scalapbVersion,
