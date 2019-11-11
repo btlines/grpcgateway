@@ -1,15 +1,15 @@
 import scalapb.compiler.Version.{grpcJavaVersion, scalapbVersion}
 
 organization in ThisBuild := "beyondthelines"
-version in ThisBuild := "0.0.9"
+version in ThisBuild := "0.0.10"
 licenses in ThisBuild := ("MIT", url("http://opensource.org/licenses/MIT")) :: Nil
 bintrayOrganization in ThisBuild := Some("beyondthelines")
 bintrayPackageLabels in ThisBuild := Seq("scala", "protobuf", "grpc")
-scalaVersion in ThisBuild := "2.12.8"
+scalaVersion in ThisBuild := "2.12.10"
 
 lazy val runtime = (project in file("runtime"))
   .settings(
-    crossScalaVersions := Seq("2.12.8", "2.11.12"),
+    crossScalaVersions := Seq("2.12.10", "2.11.12"),
     name := "GrpcGatewayRuntime",
     libraryDependencies ++= Seq(
       "com.thesamet.scalapb"   %% "compilerplugin"          % scalapbVersion,
