@@ -75,10 +75,13 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
   }
 
   protected def stubWithHeaders[StubType <: AbstractStub[StubType]](stub: StubType, headers: HttpHeaders): StubType = {
-    val passThroughHeaders = headers.entries().asScala.collect {
-      case entry if RestToGrpcPassThroughHeaders.contains(entry.getKey) =>
-        (entry.getKey, entry.getValue)
-    }
+    val passThroughHeaders =
+      if (RestToGrpcPassThroughHeaders.isEmpty) Seq.empty else {
+        headers.entries().asScala.collect {
+          case entry if RestToGrpcPassThroughHeaders.contains(entry.getKey) =>
+            (entry.getKey, entry.getValue)
+        }
+      }
 
     if (passThroughHeaders.isEmpty) stub else {
       val metadata = new Metadata()
