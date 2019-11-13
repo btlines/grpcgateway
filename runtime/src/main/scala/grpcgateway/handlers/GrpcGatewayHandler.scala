@@ -2,14 +2,25 @@ package grpcgateway.handlers
 
 import java.nio.charset.StandardCharsets
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+
+import io.grpc.ManagedChannel
+import io.grpc.Metadata
+import io.grpc.stub.AbstractStub
+import io.grpc.stub.MetadataUtils
+import io.netty.channel.ChannelHandler.Sharable
+import io.netty.channel.ChannelFutureListener
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelInboundHandlerAdapter
+import io.netty.handler.codec.http._
 import scalapb.GeneratedMessage
 import scalapb.json4s.JsonFormat
-import io.grpc.ManagedChannel
-import io.netty.channel.ChannelHandler.Sharable
-import io.netty.channel.{ ChannelFutureListener, ChannelHandlerContext, ChannelInboundHandlerAdapter }
-import io.netty.handler.codec.http._
+import scala.collection.JavaConverters._
 
-import scala.concurrent.{ ExecutionContext, Future }
+import grpcgateway.handlers.GrpcGatewayHandler.RestToGrpcPassThroughHeaders
+import scalapb.json4s.Printer
+
 
 @Sharable
 abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: ExecutionContext) extends ChannelInboundHandlerAdapter {
@@ -20,19 +31,18 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
     if (!channel.isShutdown) channel.shutdown()
 
   def supportsCall(method: HttpMethod, uri: String): Boolean
-  def unaryCall(method: HttpMethod, uri: String, body: String): Future[GeneratedMessage]
+  def unaryCall(method: HttpMethod, uri: String, headers: HttpHeaders, body: String): Future[GeneratedMessage]
 
   override def channelRead(ctx: ChannelHandlerContext, msg: scala.Any): Unit = {
 
     msg match {
       case req: FullHttpRequest =>
-
         if (supportsCall(req.method(), req.uri())) {
 
           val body = req.content().toString(StandardCharsets.UTF_8)
 
-          unaryCall(req.method(), req.uri(), body)
-            .map(JsonFormat.toJsonString)
+          unaryCall(req.method(), req.uri(), req.headers(), body)
+            .map(printer.print)
             .map(json => {
               buildFullHttpResponse(
                 requestMsg = req,
@@ -64,4 +74,48 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
       case _ => super.channelRead(ctx, msg)
     }
   }
+
+  protected def stubWithHeaders[StubType <: AbstractStub[StubType]](stub: StubType, headers: HttpHeaders): StubType = {
+    val passThroughHeaders =
+      if (RestToGrpcPassThroughHeaders.isEmpty) Seq.empty else {
+        headers.entries().asScala.collect {
+          case entry if RestToGrpcPassThroughHeaders.contains(entry.getKey) =>
+            (entry.getKey, entry.getValue)
+        }
+      }
+
+    if (passThroughHeaders.isEmpty) stub else {
+      val metadata = new Metadata()
+      passThroughHeaders.foreach { case (headerName, headerValue) =>
+        val metadataKey = Metadata.Key.of(headerName, Metadata.ASCII_STRING_MARSHALLER)
+        metadata.put(metadataKey, headerValue)
+      }
+      MetadataUtils.attachHeaders[StubType](stub, metadata)
+    }
+  }
+
+  private val printer = new Printer(includingDefaultValueFields = true)
+}
+
+object GrpcGatewayHandler {
+  private val RestToGrpcPassThroughHeaders: Set[String] = {
+    val envVarName = "REST_TO_GRPC_PASS_THROUGH_HEADERS"
+
+    Option(System.getenv(envVarName))
+      .map { str =>
+        val headers = str.split("""\s*,\s*""").toSet
+
+        val asciiEncoder = StandardCharsets.US_ASCII.newEncoder()
+        headers.foreach { header =>
+          if (header.isEmpty) {
+            throw new IllegalArgumentException(s"The empty string is not a legal header name; cannot process '$str' loaded from env variable $envVarName")
+          } else if (!asciiEncoder.canEncode(header)) {
+            throw new IllegalArgumentException(
+              s"Found non ASCII header '$header' in headers loaded from env variable $envVarName. Only ASCII headers are supported")
+          }
+        }
+
+        headers
+      }
+  }.getOrElse(Set.empty)
 }

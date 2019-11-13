@@ -52,7 +52,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
         "import _root_.scalapb.json4s.JsonFormat",
         "import _root_.grpcgateway.handlers._",
         "import _root_.io.grpc._",
-        "import _root_.io.netty.handler.codec.http.{HttpMethod, QueryStringDecoder}"
+        "import _root_.io.netty.handler.codec.http.{HttpMethod, HttpHeaders, QueryStringDecoder}"
       )
       .newline
       .add(
@@ -94,7 +94,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
   private def generateUnaryCall(service: ServiceDescriptor): PrinterEndo = { printer =>
     val methods = getUnaryCallsWithHttpExtension(service)
     printer
-      .add(s"override def unaryCall(method: HttpMethod, uri: String, body: String): Future[GeneratedMessage] = {")
+      .add(s"override def unaryCall(method: HttpMethod, uri: String, headers: HttpHeaders, body: String): Future[GeneratedMessage] = {")
       .indent
       .add(
         "val queryString = new QueryStringDecoder(uri)",
@@ -152,7 +152,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .call(generateInputFromQueryString(method.getInputType))
           .outdent
           .add("}")
-          .add(s"Future.fromTry(input).flatMap(stub.$methodName)")
+          .add(s"Future.fromTry(input).flatMap(stubWithHeaders(stub, headers).$methodName)")
           .outdent
       case PatternCase.POST =>
         printer
@@ -160,7 +160,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add("for {")
           .addIndented(
             s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
-            s"res <- stub.$methodName(msg)"
+            s"res <- stubWithHeaders(stub, headers).$methodName(msg)"
           )
           .add("} yield res")
       case PatternCase.PUT =>
@@ -169,7 +169,7 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
           .add("for {")
           .addIndented(
             s"""msg <- Future.fromTry(Try(JsonFormat.fromJsonString[${method.getInputType.getName}](body)).recoverWith(jsonException2GatewayExceptionPF))""",
-            s"res <- stub.$methodName(msg)"
+            s"res <- stubWithHeaders(stub, headers).$methodName(msg)"
           )
           .add("} yield res")
       case PatternCase.DELETE =>
