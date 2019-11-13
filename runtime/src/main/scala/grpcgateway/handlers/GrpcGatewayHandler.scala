@@ -19,6 +19,7 @@ import scalapb.json4s.JsonFormat
 import scala.collection.JavaConverters._
 
 import grpcgateway.handlers.GrpcGatewayHandler.RestToGrpcPassThroughHeaders
+import scalapb.json4s.Printer
 
 
 @Sharable
@@ -41,7 +42,7 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
           val body = req.content().toString(StandardCharsets.UTF_8)
 
           unaryCall(req.method(), req.uri(), req.headers(), body)
-            .map(JsonFormat.toJsonString)
+            .map(printer.print)
             .map(json => {
               buildFullHttpResponse(
                 requestMsg = req,
@@ -92,6 +93,8 @@ abstract class GrpcGatewayHandler(channel: ManagedChannel)(implicit ec: Executio
       MetadataUtils.attachHeaders[StubType](stub, metadata)
     }
   }
+
+  private val printer = new Printer(includingDefaultValueFields = true)
 }
 
 object GrpcGatewayHandler {
